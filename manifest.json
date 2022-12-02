@@ -1,0 +1,31 @@
+{
+    "name": "H1B Wizard",
+    "description": "Scrape any job description to find out whether the company welcomes international students.",
+    "version": "1.0",
+    "manifest_version": 3,
+    "action":{
+        "default_icon":{
+            "128": "images/icon-128.png",
+            "48": "images/icon-48.png",
+            "32": "images/icon-32.png",
+            "16": "images/icon-16.png"    
+        },
+        "default_popup": "popup.html"
+    },
+    "permissions":["tabs"],
+    "background":{
+        "service_worker": "background.js"
+    },
+    "content_scripts":[
+        {
+            "matches": ["https://www.linkedin.com/jobs/search/*", "https://www.linkedin.com/jobs/collections/recommended/*"],
+            "js": ["linkedinContent.js"],
+            "run_at": "document_idle"
+        },
+        {
+            "matches": ["https://www.indeed.com/jobs*"],
+            "js": ["indeedContent.js"],
+            "run_at":"document_idle"
+        }
+    ]
+}
