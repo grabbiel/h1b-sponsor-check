@@ -27,7 +27,8 @@ class documentSchema{
     #setDefaultProfilesTable(){
         this.profilesTable.innerHTML = "";
         let defaultRow = document.createElement("tr");
-        let companyColumn = document.createElement("th").innerHTML = "Company";
+        let companyColumn = document.createElement("th").
+        companyColumn.innerHTML = "Company";
         defaultRow.appendChild(companyColumn);
         let urlColumn = document.createElement("th").innerHTML = "URL";
         defaultRow.appendChild(urlColumn);
@@ -70,12 +71,12 @@ currentDocument.expandButton.addEventListener("click", function(){
         currentDocument.displayProfiles();
     }else{
         currentDocument.displayDefault();
-        chrome.runtime.sendMessage({requestMoreInfo: 'true'});
+        chrome.runtime.sendMessage({requestMoreInfo: true});
     }
 });
 
 // runtime Messaging
-chrome.runtime.sendMessage({requestName: 'true', requestVisas: 'true'},
+chrome.runtime.sendMessage({requestName: true, requestVisas: true},
     function(response){
         currentDocument.companyPlaceholder.innerHTML = response.name;
 });
@@ -83,7 +84,7 @@ chrome.runtime.onMessage.addListener(
     function(message){
         if(message.operation === "visaEstimation"){
             currentDocument.visasPlaceholder.innerHTML = message.data;
-            chrome.runtime.sendMessage({requestRanking: 'true'});
+            chrome.runtime.sendMessage({requestRanking: true});
         }else if(message.operation === "rankingEstimation"){
             currentDocument.rankingPlaceholder.innerHTML = message.data;
         }else if(message.operation === "profilesRequest"){
