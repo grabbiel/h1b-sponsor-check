@@ -5,8 +5,9 @@ Use this extension instead, and your job search will be a smart search: save bot
 
 In this repository you will find all the source code used by the extension. Commits are welcomed, and pull requests are encouraged. This extension is not-for-profit, as we believe the international student community deserves this tool.
 
-Features in progress:
+Features currently in the making:
 - **ETL pipeline connecting to DynamoDB** instance to enhance the textual analysis capabalities of the extension, and later predict sponsoring faster.
-- **Donation checkout system** for whomever might wish to contribute the development team.
-- **Core functionalities working in Indeed and Glassdoor**
+- **Donation checkout system** for whomever might wish to contribute to the development team.
+- Core functionalities working **in Indeed and Glassdoor**.
+- Analytics dashboard for user experience enhancement.
 
