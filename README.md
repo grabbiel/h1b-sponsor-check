@@ -1,4 +1,4 @@
-# h1b-wizard-extension
+# h1b-sponsor-checker (h1b-wizard)
 We understand: you get anxious wondering whether XYZ company will be willing to sponsor you, and so you read carefully every job description to find that "U.S. citizens only" one-liner. But you don't have to.
 
 Use this extension instead, and your job search will be a smart search: save both your time and your peace of mind while browsing through LinkedIn.
