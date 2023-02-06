@@ -1,0 +1,63 @@
+{
+  "name": "H1B Sponsor Checker",
+  "description": "Find out whether any job opening offers H1B sponsorship.",
+  "version": "1.5",
+  "manifest_version": 3,
+  "action": {
+    "default_icon": {
+      "128": "images/icon-128.png",
+      "48": "images/icon-48.png",
+      "32": "images/icon-32.png",
+      "16": "images/icon-16.png"
+    }
+  },
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": [
+    "https://www.linkedin.com/jobs/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.linkedin.com/jobs/search/*",
+        "https://www.linkedin.com/jobs/collections/recommended/*"
+      ],
+      "js": [
+        "modules/contents/linkedin/pages/methods.js",
+        "modules/contents/linkedin/pages/page.js",
+        "modules/contents/messaging.js",
+        "modules/contents/linkedin/listing.js",
+        "modules/contents/linkedin/pages/jobview.js",
+        "modules/contents/linkedin/pages/jobsearch.js",
+        "modules/contents/linkedin/pages/recommended.js",
+        "modules/contents/badges/position.js",
+        "modules/contents/badges/company.js",
+        "modules/contents/linkedin/popup/loading.js",
+        "modules/contents/linkedin/popup/main.js",
+        "linkedinContent.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "modules/popup/container.html",
+        "modules/popup/loading.css",
+        "modules/popup/loading.html",
+        "modules/popup/buttons/closeBtn.html",
+        "modules/popup/text/summary.html",
+        "modules/popup/buttons/donateBtn.html",
+        "modules/popup/buttons/feedbackBtn.html",
+        "modules/popup/buttons/refuseBtn.html",
+        "modules/popup/buttons/leaveBtn.html",
+        "modules/popup/buttons/returnBtn.html"
+    ],
+      "matches": ["https://www.linkedin.com/*"],
+      "use_dynamic_url": true
+    }
+  ]
+}
