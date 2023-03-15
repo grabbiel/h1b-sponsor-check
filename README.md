@@ -4,7 +4,7 @@ An easy plugin for international students job hunting in the USA: see which open
 
 ![Promotional Banner](https://raw.githubusercontent.com/pakitow/pakitow/main/images-repository/promo-tile-original.png "Banner")
 
-An official product in both the **Addons Firefox marketplace** and the **Chrome Webstore**, this browser extension is open-source and accepting pull requests.
+An official product in both the [**Addons Firefox marketplace**](https://addons.mozilla.org/en-US/firefox/addon/h1b-sponsor-checker/) and the [**Chrome Webstore**](https://chrome.google.com/webstore/detail/h1b-sponsor-checker/mcnljenmincmifienefinhkgkbiicccp), this browser extension is open-source and accepting pull requests.
 
 #### Strict Manifest Permissions and Versioning Requirements Are In Place:
 1. We cannot request **"tabs"** permissions, as it acts as an overreach in terms of user data management. **"ActiveTab"** permissions is preferred.
