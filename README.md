@@ -17,8 +17,8 @@ An official product in both the [**Addons Firefox marketplace**](https://addons.
 2. Hosting of Kafka Topic Producer processing job descriptions retrieved by client (background service worker) and publishing to Kafka consumer.
 3. Hosting of Kafka Topic Producer processing prelimary company name matches between website version and USCIS version and publishing to Kafka consumer.
 4. Hosting of Kafka consumer in charge of both:
-  1. Creating new JSON records in a DynamoDB instance, which stores job description, preliminary sponsor classification, and company name.
-  2. Inserting new records to a table storing matches between site-specifc company names and USCIS company names.
+    a. Creating new JSON records in a DynamoDB instance, which stores job description, preliminary sponsor classification, and company name.
+    b. Inserting new records to a table storing matches between site-specifc company names and USCIS company names.
 
 #### New Features Being Developed
 1. ETL pipeline annually updating **h1b_records** table.
