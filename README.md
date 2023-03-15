@@ -1,13 +1,34 @@
-# h1b-sponsor-checker (h1b-wizard)
-We understand: you get anxious wondering whether XYZ company will be willing to sponsor you, and so you read carefully every job description to find that "U.S. citizens only" one-liner. But you don't have to.
+# H1b Sponsor Checker (H1B Wizard)
 
-Use this extension instead, and your job search will be a smart search: save both your time and your peace of mind while browsing through LinkedIn.
+An easy plugin for international students job hunting in the USA: see which openings sponsor you, and which companies are likely to do so. All while browsing your favorite job board sites (e.g., LinkedIn, Indeed, etc.)
 
-In this repository you will find all the source code used by the extension. Commits are welcomed, and pull requests are encouraged. This extension is not-for-profit, as we believe the international student community deserves this tool.
+![Promotional Banner](https://raw.githubusercontent.com/pakitow/pakitow/main/images-repository/promo-tile-original.png "Banner")
 
-Features currently in the making:
-- **ETL pipeline connecting to DynamoDB** instance to enhance the textual analysis capabalities of the extension, and later predict sponsoring faster.
-- **Donation checkout system** for whomever might wish to contribute to the development team.
-- Core functionalities working **in Indeed and Glassdoor**.
-- Analytics dashboard for user experience enhancement.
+An official product in both the **Addons Firefox marketplace** and the **Chrome Webstore**, this browser extension is open-source and accepting pull requests.
 
+![Main Overview] (https://raw.githubusercontent.com/pakitow/pakitow/main/images-repository/overview.png "Overview")
+
+#### Strict Manifest Permissions and Versioning Requirements Are In Place:
+1. We cannot request "tabs" permissions, as it acts as an overreach in terms of user data management. "ActiveTab" permissions is preferred.
+2. When specifying "host_permissions", the URL should be path exhaustive, i.e., write "www.linkedin.com/jobs/search/*" instead of "www.linkedin.com/*".
+3. This extension does not support manifest V2 or earlier.
+4. Injecting content scripts programmatically is limited to sites with non-static loading, such as LinkedIn, where waiting for injection by Chrome API takes several reloadings of the same page. Otherwise, avoid scripting injection.
+
+#### Upcoming Features (Dependent on Developers' Resources)
+1. Hosting of Spring Boot API processing queries and supporting Redis caching.
+2. Hosting of Kafka Topic Producer processing job descriptions retrieved by client (background service worker) and publishing to Kafka consumer.
+3. Hosting of Kafka Topic Producer processing prelimary company name matches between website version and USCIS version and publishing to Kafka consumer.
+4. Hosting of Kafka consumer in charge of both:
+  1. Creating new JSON records in a DynamoDB instance, which stores job description, preliminary sponsor classification, and company name.
+  2. Inserting new records to a table storing matches between site-specifc company names and USCIS company names.
+
+#### New Features Being Developed
+1. ETL pipeline annually updating **h1b_records** table.
+2. ML model trained to verify if any given job posting will sponsor an international applicant, based on the DynamoDB JSON repository.
+3. Extended browser compatibility with Safari app and web.
+4. Extended website compatibility with Glassdoor and Handshake.
+5. Inclusion of UK, Canadian and Australian employers' sponsoring history to account for more users living outside the USA.
+
+#### Current Fixes
+1. Transpiling current code base to TSX.
+2. Replacing HTML injection by React client-side rendering.
