@@ -1,88 +1,105 @@
-import Content from "./modules/background/messaging/content.js";
-import PostingInformation from "./modules/background/posting.js";
-import Popup from "./modules/background/messaging/popup.js";
 
+import ContentMessageManager from "./modules/background/messaging/content.js";
+import PopupMessageManager from "./modules/background/messaging/popup.js";
+import { posting, content_scripts } from "./utilities.js";
 
-var current_tab_id;
-const content_scripts = ["./modules/contents/linkedin/pages/methods.js",
-"./modules/contents/linkedin/pages/page.js",
-"./modules/contents/messaging.js",
-"./modules/contents/linkedin/pages/jobview.js",
-"./modules/contents/linkedin/pages/jobsearch.js",
-"./modules/contents/linkedin/pages/recommended.js",
-"./modules/contents/linkedin/listing.js",
-"./modules/contents/badges/position.js",
-"./modules/contents/badges/company.js",
-"./modules/contents/linkedin/popup/loading.js",
-"./modules/contents/linkedin/popup/main.js",
-"linkedinContent.js"];
-const posting = new PostingInformation();
+var current_tab_id = null;
 
+/* === UPON EVENT, ENSURE CONTENT SCRIPT LISTENERS ARE SET === */
+function injectContentScripts(tab_id) {
+  chrome.tabs.sendMessage(tab_id, { ping: true }, function (response) {
+    if (response && response.pong) {
+    /* if [listeners are set] */
+      validateSiteInjection(tab_id);
+    } else if (chrome.runtime.lastError || response === undefined) {
+    /* [listeners were not set] */
+      chrome.scripting.executeScript(
+        {
+          files: content_scripts,
+          target: { tabId: tab_id },
+        },
+        function () {
+          /* !host_permissions: not right site */
+          if (chrome.runtime.lastError) return;
 
-/* === UPON LOADING (OR RELOADING), IF CAN ENSURE CONTENT.JS LISTENERS ARE SET === */
-function injectContent(tabId, eventtype){
-    chrome.tabs.sendMessage(tabId, {ping: true}, function(response){
-        if(response && response.pong){
-            /* if [linkedin] && [previously loaded (tab open)] */
-            initialParsingMessage(tabId, eventtype);
-        }else if(chrome.runtime.lastError || response===undefined){
-            chrome.scripting.executeScript({
-                files: content_scripts,
-                target: {tabId: tabId}
-            }, function(){
-                if(chrome.runtime.lastError){
-                    /* if ![linkedin] because of !host_permission */
-                    return;
-                }else{
-                    /* if [linkedin] */
-                    initialParsingMessage(tabId, eventtype);
-                }
-            });
-            
+          /* currently at any valid site listed in manifest.json */
+          validateSiteInjection(tab_id);
         }
-    });
+      );
+    }
+  });
 }
 
-/* === SET 3 MESSAGING SOURCES === */
-//INITIAL GATE [1]
-function initCreationListener(tab){
-    updateTabId(tab.id);
-    injectContent(tab.id);
+/* === MAIN EVENT LISTENERS === */
+//INITIAL GATE [1]: New tab is opened
+function tabCreatedListener(tab) {
+  updateTabId(tab.id);
+  injectContentScripts(tab.id);
 }
-chrome.tabs.onCreated.addListener(initCreationListener);
-// INITIAL GATE [2]
-function initialActiveListener(activeInfo){
-    updateTabId(activeInfo.tabId);
-    injectContent(activeInfo.tabId);
+chrome.tabs.onCreated.addListener(tabCreatedListener);
+// INITIAL GATE [2]: Switch tabs
+function activeTabSwitchListener(activeInfo) {
+  updateTabId(activeInfo.tabId);
+  injectContentScripts(activeInfo.tabId);
 }
-chrome.tabs.onActivated.addListener(initialActiveListener);
-// INITIAL GATE [3]
-function updateListenTest(tabId, changeInfo, tab){
-    if(changeInfo.status === "complete"){
-        updateTabId(tabId);
-        injectContent(tabId);
-    }
-}
-chrome.tabs.onUpdated.addListener(updateListenTest);
+chrome.tabs.onActivated.addListener(activeTabSwitchListener);
+// INITIAL GATE [3]: Tab is refreshed
+function updateListener(tabId, changeInfo, tab) {
+  if (changeInfo.status === "complete") {
+    updateTabId(tabId);
+    injectContentScripts(tabId);
+}}
+chrome.tabs.onUpdated.addListener(updateListener);
 
 /* ==== GENERAL FUNCTIONS ==== */
-const initialParsingMessage = (tabCurrentId) =>{
-    chrome.tabs.sendMessage(tabCurrentId, 
-        {operation: "parsing",
-        origin: "background"}
-    );
-}
-const updateTabId = (tabID) => {
-    current_tab_id = tabID;
-}
+const updateTabId = (tab_id) => {
+  current_tab_id = tab_id;
+};
+/**
+ * Asks content script to initiate parsing of website
+ * @param int currentTabId
+ * @returns void
+*/
+const initializeParsing = (tab_id) => {
+  chrome.tabs.sendMessage(tab_id, {
+    operation: "parsing",
+    origin: "background",
+  });
+};
+/**
+ * Asks content script to (re)set (or inject) site-specific content scripts
+ * @param int currentTabId
+ * @returns void
+*/
+const setHostPage = (tab_id) => {
+  chrome.tabs.sendMessage(tab_id, {
+    operation: "hosting",
+    origin: "background",
+  });
+};
+/**
+ * Checks if ActiveTab has correct content scripts set
+ * @param int currentTabId
+ * @returns void
+*/
+const validateSiteInjection = (tab_id) => {
+  chrome.tabs.sendMessage(
+    tab_id,
+    { operation: "validation", origin: "background" },
+    function (response) {
+      if (response && response.set) {
+        initializeParsing(tab_id);
+      } else if (response) {
+        setHostPage(tab_id);
+      }
+    }
+  );
+};
 
 /* === RUNTIME LISTENERS === */
-chrome.runtime.onMessage.addListener(
-    function(message, sender, sendResponse){
-        if(message.origin === "popup"){
-            new Popup(current_tab_id, posting, message, sendResponse);
-        }else if(message.origin === "content"){
-            new Content(current_tab_id, posting, message, sendResponse);
-        }
-    }
-);
+chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
+  if (message.origin === "popup")
+    new PopupMessageManager(current_tab_id, posting, message, sendResponse);
+  else if (message.origin === "content")
+    new ContentMessageManager(current_tab_id, posting, message, sendResponse);
+});
