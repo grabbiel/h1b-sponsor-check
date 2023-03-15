@@ -7,8 +7,8 @@ An easy plugin for international students job hunting in the USA: see which open
 An official product in both the **Addons Firefox marketplace** and the **Chrome Webstore**, this browser extension is open-source and accepting pull requests.
 
 #### Strict Manifest Permissions and Versioning Requirements Are In Place:
-1. We cannot request "tabs" permissions, as it acts as an overreach in terms of user data management. "ActiveTab" permissions is preferred.
-2. When specifying "host_permissions", the URL should be path exhaustive, i.e., write "www.linkedin.com/jobs/search/*" instead of "www.linkedin.com/*".
+1. We cannot request **"tabs"** permissions, as it acts as an overreach in terms of user data management. **"ActiveTab"** permissions is preferred.
+2. When specifying **"host_permissions"**, the URL should be path exhaustive, i.e., write "www.linkedin.com/jobs/search/*" instead of "www.linkedin.com/*".
 3. This extension does not support manifest V2 or earlier.
 4. Injecting content scripts programmatically is limited to sites with non-static loading, such as LinkedIn, where waiting for injection by Chrome API takes several reloadings of the same page. Otherwise, avoid scripting injection.
 
