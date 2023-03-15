@@ -6,7 +6,7 @@ An easy plugin for international students job hunting in the USA: see which open
 
 An official product in both the **Addons Firefox marketplace** and the **Chrome Webstore**, this browser extension is open-source and accepting pull requests.
 
-![Main Overview] (https://raw.githubusercontent.com/pakitow/pakitow/main/images-repository/overview.png "Overview")
+![Main Overview](https://raw.githubusercontent.com/pakitow/pakitow/main/images-repository/overview.png "Overview")
 
 #### Strict Manifest Permissions and Versioning Requirements Are In Place:
 1. We cannot request "tabs" permissions, as it acts as an overreach in terms of user data management. "ActiveTab" permissions is preferred.
