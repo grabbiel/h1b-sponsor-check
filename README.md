@@ -1,6 +1,6 @@
 # H1b Sponsor Checker (H1B Wizard)
 
-An easy plugin for international students job hunting in the USA: see which openings sponsor you, and which companies are likely to do so. All while browsing your favorite job board sites (e.g., LinkedIn, Indeed, etc.)
+An easy plugin for international students job hunting while in the USA: see which openings sponsor you, and which companies are likely to do so. All while browsing your favorite job board sites (e.g., LinkedIn, Indeed, etc.)
 
 ![Promotional Banner](https://raw.githubusercontent.com/pakitow/pakitow/main/images-repository/promo-tile-original.png "Banner")
 
