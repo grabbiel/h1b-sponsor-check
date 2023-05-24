@@ -1,97 +1,87 @@
-
-import ContentMessageManager from "./modules/background/messaging/content.js";
-import PopupMessageManager from "./modules/background/messaging/popup.js";
+import Content from "./modules/background/messaging/content.js";
+import Popup from "./modules/background/messaging/popup.js";
 import { posting, content_scripts } from "./utilities.js";
 
 var current_tab_id = null;
 
-/* === UPON EVENT, ENSURE CONTENT SCRIPT LISTENERS ARE SET === */
-function injectContentScripts(tab_id) {
-  chrome.tabs.sendMessage(tab_id, { ping: true }, function (response) {
+/* === UPON LOADING (OR RELOADING), IF CAN ENSURE CONTENT.JS LISTENERS ARE SET === */
+function injectContent(tabId) {
+  chrome.tabs.sendMessage(tabId, { ping: true }, function (response) {
     if (response && response.pong) {
-    /* if [listeners are set] */
-      validateSiteInjection(tab_id);
+      /* if [linkedin] && [previously loaded (tab open)] */
+      validateSiteInjection(tabId);
     } else if (chrome.runtime.lastError || response === undefined) {
-    /* [listeners were not set] */
       chrome.scripting.executeScript(
         {
           files: content_scripts,
-          target: { tabId: tab_id },
+          target: { tabId: tabId },
         },
         function () {
-          /* !host_permissions: not right site */
-          if (chrome.runtime.lastError) return;
+          /* if ![linkedin] because of !host_permission */
+          if (chrome.runtime.lastError) {
+            return;
+          }
 
-          /* currently at any valid site listed in manifest.json */
-          validateSiteInjection(tab_id);
+          /* if [linkedin] */
+          validateSiteInjection(tabId);
         }
       );
     }
   });
 }
 
-/* === MAIN EVENT LISTENERS === */
-//INITIAL GATE [1]: New tab is opened
-function tabCreatedListener(tab) {
+/* === SET 3 MESSAGING SOURCES === */
+//INITIAL GATE [1]
+function initCreationListener(tab) {
   updateTabId(tab.id);
-  injectContentScripts(tab.id);
+  injectContent(tab.id);
 }
-chrome.tabs.onCreated.addListener(tabCreatedListener);
-// INITIAL GATE [2]: Switch tabs
-function activeTabSwitchListener(activeInfo) {
+chrome.tabs.onCreated.addListener(initCreationListener);
+// INITIAL GATE [2]
+function initialActiveListener(activeInfo) {
   updateTabId(activeInfo.tabId);
-  injectContentScripts(activeInfo.tabId);
+  injectContent(activeInfo.tabId);
 }
-chrome.tabs.onActivated.addListener(activeTabSwitchListener);
-// INITIAL GATE [3]: Tab is refreshed
-function updateListener(tabId, changeInfo, tab) {
+chrome.tabs.onActivated.addListener(initialActiveListener);
+// INITIAL GATE [3]
+function updateListenTest(tabId, changeInfo, tab) {
   if (changeInfo.status === "complete") {
     updateTabId(tabId);
-    injectContentScripts(tabId);
-}}
-chrome.tabs.onUpdated.addListener(updateListener);
+    injectContent(tabId);
+  }
+}
+chrome.tabs.onUpdated.addListener(updateListenTest);
 
 /* ==== GENERAL FUNCTIONS ==== */
-const updateTabId = (tab_id) => {
-  current_tab_id = tab_id;
+// Update the current tab ID
+const updateTabId = (tabCurrentId) => {
+  current_tab_id = tabCurrentId;
 };
-/**
- * Asks content script to initiate parsing of website
- * @param int currentTabId
- * @returns void
-*/
-const initializeParsing = (tab_id) => {
-  chrome.tabs.sendMessage(tab_id, {
+
+// Initialize parsing in the current tab
+const initializeParsing = (tabCurrentId) => {
+  chrome.tabs.sendMessage(tabCurrentId, {
     operation: "parsing",
     origin: "background",
   });
 };
-/**
- * Asks content script to (re)set (or inject) site-specific content scripts
- * @param int currentTabId
- * @returns void
-*/
-const setHostPage = (tab_id) => {
-  chrome.tabs.sendMessage(tab_id, {
+
+// Set the host page in the current tab
+const setHostPage = (tabCurrentId) => {
+  chrome.tabs.sendMessage(tabCurrentId, {
     operation: "hosting",
     origin: "background",
   });
 };
-/**
- * Checks if ActiveTab has correct content scripts set
- * @param int currentTabId
- * @returns void
-*/
-const validateSiteInjection = (tab_id) => {
+
+// Validate site injection in the current tab
+const validateSiteInjection = (tabCurrentId) => {
   chrome.tabs.sendMessage(
-    tab_id,
+    tabCurrentId,
     { operation: "validation", origin: "background" },
     function (response) {
-      if (response && response.set) {
-        initializeParsing(tab_id);
-      } else if (response) {
-        setHostPage(tab_id);
-      }
+      if (response && response.set) initializeParsing(tabCurrentId);
+      else if (response) setHostPage(tabCurrentId);
     }
   );
 };
@@ -99,7 +89,7 @@ const validateSiteInjection = (tab_id) => {
 /* === RUNTIME LISTENERS === */
 chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
   if (message.origin === "popup")
-    new PopupMessageManager(current_tab_id, posting, message, sendResponse);
+    new Popup(current_tab_id, posting, message, sendResponse);
   else if (message.origin === "content")
-    new ContentMessageManager(current_tab_id, posting, message, sendResponse);
+    new Content(current_tab_id, posting, message, sendResponse);
 });

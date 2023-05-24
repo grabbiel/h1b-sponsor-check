@@ -1,41 +1,24 @@
 class PostingBadge{
-    constructor(position_container, job_classification){
-        this.container = position_container;
-        this.#clearCache();
-        this.#addBadge(job_classification);
+    constructor(positionContainer, jobClassification){
+        this.container = positionContainer;
+        this.clearCache();
+        this.#addBadge(jobClassification);
     }
-    /**
-     * Remove span elements if existing
-     * @param void
-     * @returns void
-    */
-    #clearCache(){
-
-        if(this.container.querySelector("span") === undefined || 
-        this.container.querySelector("span") === null) return;
-
-        Array.from(this.container.querySelectorAll("span")).forEach(
-            (spanelement)=>{ this.container.removeChild(spanelement); }
-        );
-        
+    clearCache(){
+        if(this.container.querySelector("span") != undefined){
+            Array.from(this.container.querySelectorAll("span")).forEach(
+                (spanelement)=>{ this.container.removeChild(spanelement); }
+            );
+        }
     }
-    /**
-     * Add JS-created badge to HTML DOM structure next to job title
-     * @param int company_status
-     * @returns void
-    */
-    #addBadge(dstatus){
+    #addBadge(cstatus){
         const spanSpace = document.createElement("span");
         spanSpace.innerHTML = " ";
         this.container.appendChild(spanSpace);
-        this.container.appendChild(this.#createBadge(dstatus));
+        this.container.appendChild(this.#createBadge(cstatus));
     }
-    /**
-     * Creates badge to inject into HTML DOM structure
-     * @param int company_status
-     * @returns void
-    */
-    #createBadge(dstatus){
+    #createBadge(companystatus){
+        this.cstatus = companystatus;
         const spanElement = document.createElement("span");
         spanElement.style =`
         vertical-align: middle;
@@ -48,24 +31,19 @@ class PostingBadge{
         text-align: center; 
         border-radius: 7.5%;
         `;
-        if(dstatus == 1){spanElement.style.backgroundColor = "#0FFF00";}
+        if(this.cstatus == 1){spanElement.style.backgroundColor = "#0FFF00";}
         const anchor = document.createElement("a");
         anchor.innerText = "sponsors";
         anchor.title = "More H1B information";
         anchor.addEventListener("click",e=>{
             e.preventDefault();
-            window.scrollTo(0,0); // scroll to top
-            this.#popup_manager(); // create message window
+            window.scrollTo(0,0);
+            this.#popup_manager();
             return false;
         });
         spanElement.appendChild(anchor);
         return spanElement;
     }
-    /**
-     * Request sponsoring data for company from background script
-     * @param void
-     * @returns void
-    */
     #popup_manager(){
         new Messaging({origin: "popup", operation: "request", data:{full: true} });
     }    

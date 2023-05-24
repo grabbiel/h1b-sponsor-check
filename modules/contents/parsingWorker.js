@@ -4,13 +4,13 @@ class GeneralParsingWorker{
         this.searchresults = null;
         this.jobposting = null;
     }
-    clearSearchCache(){
+    clear_search_cache(){
         this.searchresults = null;
     }
     add_listing_badge = async (companyStatus, index) =>{
         this.searchresults.addListingBadge(companyStatus, index);
     }
-    getListingActiveCompanyName(){
+    get_listing_active_company_name(){
         return this.searchresults.getActiveCompanyName();
     }
     classify_posting_company(companyStatus){

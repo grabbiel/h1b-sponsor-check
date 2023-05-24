@@ -1,6 +1,6 @@
 export default class Message{
-    constructor(tab_id, origin, operation, data){
-        chrome.tabs.sendMessage(tab_id, {
+    constructor(tabId, origin, operation, data){
+        chrome.tabs.sendMessage(tabId, {
             origin: origin,
             operation: operation,
             data: data

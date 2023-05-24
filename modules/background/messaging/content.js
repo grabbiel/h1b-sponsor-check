@@ -1,120 +1,120 @@
 import Message from "./mainmessage.js";
 import MatchRequest from "../requests/match.js";
+import MatchReviewRequest from "../requests/review.js";
 import JobsListing from "../listing.js";
-import { linkedin_content_scripts } from "../../../utilities.js";
+import {
+  linkedin_content_scripts,
+  indeed_content_scripts,
+  platform_codes_by_worker
+} from "../../../utilities.js";
 
-export default class ContentMessageManager {
-    constructor(tab_id, postingelement, message, sendResponse){
 
-        this.current_tab_id = tab_id;
+export default class Content {
+  constructor(tabId, postingelement, message, sendResponse) {
+    this.current_tab_id = tabId;
 
-        if(message.operation === "submit"){
-
-            this.manage_submit(message.data, postingelement);
-
-        }else if(message.operation === "request"){
-
-            this.manage_request(message, postingelement, sendResponse);
-
-        }else if(message.operation === "resubmit"){
-
-            this.manage_resubmit(message);
-
-        }else if(message.operation === "injection"){
-            this.manage_injection(message.data.sitename);
-        }
+    if (message.operation === "submit") {
+      // Handle submit operation
+      this.manage_submit(message, postingelement);
+    } else if (message.operation === "request") {
+      // Handle request operation
+      this.manage_request(message, postingelement, sendResponse);
+    } else if (message.operation === "resubmit") {
+      // Handle resubmit operation
+      this.manage_resubmit(message);
+    } else if (message.operation === "injection") {
+      // Handle injection operation
+      this.manage_injection(message.data.sitename);
     }
-    /* ===== SUBMIT OPERATION ===== */
-    manage_submit(message_data, postingelement){
+  }
+  manage_submit(message, postingelement) {
+    // Handle submit operation
 
-        /* content submitted company's name to background posting object */
-        if(message_data.name === true){
-            postingelement.setCompanyName(message_data.content);
-            this.submit_company_matching_request(postingelement);
-
-        /* content submitted job description to background posting object */
-        }else if(message_data.description === true){
-
-            postingelement.setDescription(message_data.content);
-            new Message(this.current_tab_id, "background", "edit", {
-                jobopening: true, content: postingelement.postIsFriendly
-            });
-
-        /* content submitted set of job listings (name + idx) to background listing object */
-        }else if(message_data.posts === true){
-            new JobsListing(message_data.content, this.current_tab_id);
-        }
+    if (message.data.name === true) {
+      // If company name is true, set the company name and submit a company matching request
+      postingelement.setCompanyName(message.data.content);
+      this.submit_company_matching_request(postingelement);
+    } else if (message.data.description === true) {
+      // If description is true, set the description and send a message to the background to edit the job opening
+      postingelement.setDescription(message.data.content);
+      new Message(this.current_tab_id, "background", "edit", {
+        jobopening: true,
+        content: postingelement.postIsFriendly,
+      });
+    } else if (message.data.posts === true) {
+      // If posts is true, create a new JobsListing instance with the content
+      new JobsListing(message.data.content, this.current_tab_id);
+    } else if(message.data.parsingworkerClass === true){
+        postingelement.setPlatform(message.data.content.platform_code);
+        postingelement.setCountry(0); // MODIFY LATER
     }
-    
-    /**
-     * Query for company name within database, notify if match is found, and retrieve sponsoring data
-     * @param PostingInformation posting
-     * @returns void
-    */
-    submit_company_matching_request(postingelement){
-        var instance = new MatchRequest(postingelement.companyName);
-        /* check if company has a sponsoring history */
-        instance.getMatch().then((response)=>{
-            /* notify content script */
-            new Message(
-                this.current_tab_id, "background", "edit", 
-                {cstatus: true, content: response}
-            );
-            /* company had a sponsoring history */
-            if(response == 1){
-                instance.getCompanyRecord(instance.string_literal).then(
-                    (response)=>{ postingelement.setH1bData(response); }
-                );
-            /* company never sponsored */
-            }else{ postingelement.setH1bData(null); }
+  }
+
+  submit_company_matching_request(postingelement) {
+    // Submit a company matching request
+
+    let instance = new MatchRequest(postingelement.companyName);
+    instance.get_match().then((response) => {
+      new Message(this.current_tab_id, "background", "edit", {
+        cstatus: true,
+        content: response,
+      });
+
+      if (response == 1) {
+        instance.getCompanyRecord(instance.string_literal).then((response) => {
+          postingelement.setH1bData(response);
         });
-    }
-    /* ===== REQUEST OPERATION ===== */
-    manage_request(message, postingelement, sendResponse){
-        /* content script requests company sponsoring status and job description status */
-        if(message.data.cstatus === true && message.data.cdescription === true){
-            sendResponse({
-                cstatus: Boolean(postingelement.h1bdata),
-                cdescription: postingelement.postIsFriendly
-            });
-        }
-    }
-    /* ===== INJECTION OPERATION ===== */
-    manage_injection = async(sitename) =>{
-        switch(sitename){
-            case 1:
-                await this.#injectScripts(linkedin_content_scripts);
-                break;
-            case 2:
-                await this.#injectScripts(indeed_content_scripts);
-                break;
-            default:
-                break;
-        }
-    }
+        
+        this.submit_match_review_request(postingelement, instance.string_literal);        
 
-    /**
-     * Inject site-specific content scripts upon content script request
-     * @param String[] content_scripts
-     * @returns Promise
-    */
-    #injectScripts = async(content_scripts) =>{
-        var injection_status = true;
-        var self = this;
-        await chrome.scripting.executeScript({
-            files: content_scripts,
-            target: {tabId: self.current_tab_id}
-        }, function(){
-            
-            /* error while injecting */
-            if(chrome.runtime.lastError) injection_status = false;
+      } else postingelement.setH1bData(null);
+    });
+  }
 
-            /* successful injection */
-            new Message(
-                self.current_tab_id, "background", "set-parsing-worker",
-                {set: injection_status}
-            );
+  submit_match_review_request = async (postingelement, string_literal) =>{
+    let instance = new MatchReviewRequest(postingelement.companyName, postingelement.platform, postingelement.country, string_literal);
+    instance.runProcess();
+  }
+
+  manage_request(message, postingelement, sendResponse) {
+    // Handle request operation
+
+    if (message.data.cstatus === true && message.data.cdescription === true) {
+      // If cstatus and cdescription are true, send a response with the company status and description
+      sendResponse({
+        cstatus: Boolean(postingelement.h1bdata),
+        cdescription: postingelement.postIsFriendly,
+      });
+    }
+  }
+
+  manage_injection = async (sitename) => {
+    switch (sitename) {
+      case 1:
+        await this.#injectScripts(linkedin_content_scripts);
+        break;
+      case 2:
+        await this.#injectScripts(indeed_content_scripts);
+        break;
+      default:
+        break;
+    }
+  };
+
+  #injectScripts = async (contentScripts) => {
+    var injectionStatus = true;
+    var self = this;
+    await chrome.scripting.executeScript(
+      {
+        files: contentScripts,
+        target: { tabId: self.current_tab_id },
+      },
+      function () {
+        if (chrome.runtime.lastError) injectionStatus = false;
+        new Message(self.current_tab_id, "background", "set-parsing-worker", {
+          set: injectionStatus,
         });
-    }
-
+      }
+    );
+  };
 }

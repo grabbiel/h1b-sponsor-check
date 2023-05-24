@@ -1,53 +1,30 @@
 class CompanyBadge{
     constructor(nameContainer, companyStatus){
         this.container = nameContainer;
-        this.#clearCache();
-        this.#addBadge(companyStatus);
+        this.clearCache();
+        this.addListingBadge(companyStatus);
     }
-    /**
-     * Remove span and svg elements if existing
-     * @param void
-     * @returns void
-    */
-    #clearCache(){
-
-        if(!this.container.hasChildNodes()) return;
-        
-        this.#removeDOMElements(this.container.getElementsByTagName("span"));
-        this.#removeDOMElements(this.container.getElementsByTagName("svg"));
-
+    clearCache(){
+        if(this.container.hasChildNodes()){
+            this.#removeDOMElements(this.container.getElementsByTagName("span"));
+            this.#removeDOMElements(this.container.getElementsByTagName("svg"));
+        }
     }
-    /**
-     * Remove specific type of element if existing
-     * @param HTMLDOMCollection elements_array
-     * @returns void
-    */
     #removeDOMElements(elements_array){
-        
-        if(elements_array==undefined || elements_array==null) return;
-        if(elements_array.length <= 0) return;
-        
-        Array.from(elements_array).forEach((element)=>{
-            this.container.removeChild(element);
-        });
-
+        if(elements_array!=undefined && elements_array!=null){
+            if(elements_array.length > 0){
+                Array.from(elements_array).forEach((ele)=>{
+                    this.container.removeChild(ele);
+                });
+            }
+        }
     }
-    /**
-     * Add JS-created badge to HTML DOM structure next to company name
-     * @param int company_status
-     * @returns void
-    */
-    #addBadge(cstatus){
+    addListingBadge(cstatus){
         const spanSpace = document.createElement("span");
         spanSpace.innerHTML = " ";
         this.container.appendChild(spanSpace);
         this.container.appendChild(this.#createSVG(cstatus));
     }
-    /**
-     * Creates SVG to inject into HTML DOM structure next to company name
-     * @param int company_status
-     * @returns void
-    */
     #createSVG(cstatus){
         const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
         svg.style.verticalAlign = "middle";
@@ -62,15 +39,10 @@ class CompanyBadge{
         });
         return svg;
     }
-    /**
-     * Creates path to inject into HTML DOM structure next to company name
-     * @param int company_status
-     * @returns void
-    */
-    #createPath(cstatus){
+    #createPath(status){
         const path = document.createElementNS("http://www.w3.org/2000/svg","path");
         path.style.verticalAlign = "middle";
-        if(cstatus==1){
+        if(status==1){
             path.setAttribute("fill","#0FFF00");
             path.addEventListener("mouseover",e=>{
                 path.setAttribute("fill","#0cb500");
@@ -92,11 +64,6 @@ class CompanyBadge{
             return path;
         }
     }
-    /**
-     * Request sponsoring data for company from background script
-     * @param void
-     * @returns void
-    */
     #popupmanager(){
         new Messaging({origin: "popup", operation: "request", data:{full: true} });
     }

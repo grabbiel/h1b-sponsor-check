@@ -2,35 +2,27 @@ class IndeedSearchPage extends PageManipulation{
     constructor(documentbody){
         super();
         this.body = documentbody;
-
-        if(this.#mainPane(this.body)){
-            this.#topPane(this.mainpane);
-            this.#positionPlaceholder(this.toppane);
-            this.#jobDescription(this.mainpane).then(()=>{
-
+        if(this.#main_pane(this.body)){
+            this.#top_pane(this.mainpane);
+            this.#position_placeholder(this.toppane);
+            this.#job_description(this.mainpane).then(()=>{
                 new Messaging({origin: "content", operation: "submit", data:{
                     description: true,
                     content: this.getDescription()
                 }});
             });
-            this.#namePlaceholder(this.toppane).then(()=>{
+            this.#name_placeholder(this.toppane).then(()=>{
                 this.getName().then(()=>{
-                    
                     new Messaging({origin: "content", operation: "submit", data:{
                         name: true,
                         content: this.cname
             }})})});
         }
     }
-    /**
-     * Check whether main posting pane is visible upon parsing request from background script.
-     * @param void
-     * @returns Boolean
-    */
-    #mainPane(){
+    #main_pane(){
         var ans = this.body.querySelector(".jobsearch-ViewJobLayout-jobDisplay");
         if(ans === null || ans === undefined){ 
-            this.#emergencyMainPane();
+            this.#emergency_main_pane();
             return false;
         }
         else{ 
@@ -38,48 +30,23 @@ class IndeedSearchPage extends PageManipulation{
             return true;
         };
     }
-    /**
-     * Stores company name by parsing listing search pane. Called when main posting pane is not loaded upon parsing request.
-     * @param void
-     * @returns void
-    */
-    #emergencyMainPane = async()=>{
+    #emergency_main_pane = async()=>{
         this.cname = this.body.querySelector(".companyName").innerText.trim();
         new Messaging({origin: "content", operation: "NULL", data:{
             name: true,
             content: this.cname}
         });
     }
-    /**
-     * Store top pane from main posting pane.
-     * @param HTMLDivElement main_pane
-     * @returns void
-    */
-    #topPane(mainpane){
+    #top_pane(mainpane){
         this.toppane = mainpane.querySelector(".jobsearch-JobComponent-embeddedHeader");
     }
-    /**
-     * Store job title container from top posting pane.
-     * @param HTMLDivElement top_pane
-     * @returns void
-    */
-    #positionPlaceholder(toppane){
+    #position_placeholder(toppane){
         this.positionholder = toppane.querySelector(".jobsearch-JobInfoHeader-title > span");
     }
-    /**
-     * Store job description container from main posting pane.
-     * @param HTMLDivElement main_pane
-     * @returns void
-    */
-    #jobDescription = async(mainpane) =>{
+    #job_description = async(mainpane) =>{
         this.descriptionholder = mainpane.querySelector("#jobDescriptionText");
     }
-    /**
-     * Store company name's container from top posting pane.
-     * @param HTMLDivElement top_pane
-     * @returns void
-    */
-    #namePlaceholder = async(toppane) =>{
+    #name_placeholder = async(toppane) =>{
         this.nameholder = toppane.querySelector("[data-company-name='true']");
     }
 
