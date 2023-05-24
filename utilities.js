@@ -21,3 +21,12 @@ export const linkedin_content_scripts = ["./modules/contents/page.js",
 "./modules/contents/linkedin/linkedin.js"
 ];
 
+export const indeed_content_scripts = ["./modules/contents/indeed/indeed.js"];
+
+/* ======== MAPPINGS ======== */
+export const platform_codes_by_worker = {
+    "LinkedinWorker": 1,
+    "IndeedWorker": 2,
+    "GlassdoorWorker": 3
+};
+
