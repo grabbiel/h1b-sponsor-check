@@ -1,15 +1,15 @@
 class LinkedinPostingsListing{
     constructor(documentHTML, browsePageCode){
         this.maindoc = documentHTML;
-        this.nameXPATH = (browsePageCode===1)?".job-card-container__primary-description":"[class*='-container__company-name']";
+        this.nameXPATH = (browsePageCode===1)?".job-card-container__primary-description":"[class*='-card-container__primary-description']";
         this.activepost = null;
         this.#look_for_active_post();
         this.jobListingDOMCollection = this.#get_new_posts();
         this.listing = this.#get_company_nameholders();
         this.#classify_listing();
     }
-    #look_for_active_post = async() =>{
-        let currentpost = this.maindoc.querySelector("[class*='__list-item--active']");
+    #look_for_active_post(){
+        let currentpost = this.maindoc.querySelector(".jobs-search-results-list__list-item--active");
         if(currentpost!=null && currentpost!=undefined){
             this.activepost = currentpost.querySelector(this.nameXPATH);
         }

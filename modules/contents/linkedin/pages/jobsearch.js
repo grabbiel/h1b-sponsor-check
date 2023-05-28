@@ -14,10 +14,12 @@ class LinkedinSearchPage extends PageManipulation{
         });
         this.name_placeholder(this.toppane).finally(()=>{
             this.getName().finally(()=>{
-                new Messaging({origin: "content", operation: "submit", data:{
-                    name: true,
-                    content: this.cname}
-                });
+                if(this.cname != "" && this.cname != undefined && this.cname != null){
+                    new Messaging({origin: "content", operation: "submit", data:{
+                        name: true,
+                        content: this.cname}
+                    });
+                }
             });
         });
     }

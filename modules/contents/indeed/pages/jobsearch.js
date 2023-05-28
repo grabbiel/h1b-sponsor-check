@@ -3,32 +3,37 @@ class IndeedSearchPage extends PageManipulation{
         super();
         this.body = documentbody;
         if(this.#main_pane(this.body)){
-            this.#top_pane(this.mainpane);
-            this.#position_placeholder(this.toppane);
-            this.#job_description(this.mainpane).then(()=>{
-                new Messaging({origin: "content", operation: "submit", data:{
-                    description: true,
-                    content: this.getDescription()
-                }});
-            });
-            this.#name_placeholder(this.toppane).then(()=>{
-                this.getName().then(()=>{
-                    new Messaging({origin: "content", operation: "submit", data:{
-                        name: true,
-                        content: this.cname
-            }})})});
+            this.full_parsing();
         }
     }
+    full_parsing(){
+        var ans = this.body.querySelector("[class*='jobsearch-viewjoblayout']");
+        this.mainpane = ans.querySelector(".jobsearch-JobComponent");
+        this.#top_pane(this.mainpane);
+        this.#position_placeholder(this.toppane);
+        this.#job_description(this.mainpane).then(()=>{
+            new Messaging({origin: "content", operation: "submit", data:{
+                description: true,
+                content: this.getDescription()
+            }});
+        });
+        this.#name_placeholder(this.toppane).then(()=>{
+            this.getName().then(()=>{
+                new Messaging({origin: "content", operation: "submit", data:{
+                    name: true,
+                    content: this.cname
+        }})})});
+    }
     #main_pane(){
-        var ans = this.body.querySelector(".jobsearch-ViewJobLayout-jobDisplay");
-        if(ans === null || ans === undefined){ 
+        var ans = this.body.querySelector("[class*='jobsearch-viewjoblayout']");
+        if(ans === null || ans === undefined){
             this.#emergency_main_pane();
             return false;
         }
-        else{ 
+        else{
             this.mainpane = ans.querySelector(".jobsearch-JobComponent");
             return true;
-        };
+        }
     }
     #emergency_main_pane = async()=>{
         this.cname = this.body.querySelector(".companyName").innerText.trim();

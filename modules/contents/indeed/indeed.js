@@ -8,7 +8,7 @@ class IndeedWorker extends GeneralParsingWorker{ // extend parent
         this.#determine_page();
     }
     #determine_page(){
-        if(this.documentbody.querySelector(".jobsearch-JobCountAndSortPane-jobCountInfo")){
+        if(this.documentbody.querySelector("[class*='jobsearch-JobCountAndSortPane-jobCount']")){
             this.jobposting = new IndeedSearchPage(this.documentbody);
             this.searchresults = new IndeedPostingsListing(this.documentbody);
         }
