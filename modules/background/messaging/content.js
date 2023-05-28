@@ -5,7 +5,6 @@ import JobsListing from "../listing.js";
 import {
   linkedin_content_scripts,
   indeed_content_scripts,
-  platform_codes_by_worker
 } from "../../../utilities.js";
 
 

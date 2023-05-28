@@ -1,30 +1,45 @@
-var ParsingWorker = null; // stores main pane parsing class constructor
-var parsingWorker = null; // stores pa
+/* 
+
+*/
+
+// Stores Parsing Constructor
+var ParsingWorker = null;
+// Stores Instance of Parsing Constructor
+var parsingWorker = null;
+// Parsing State (Boolean)
 var parsing = false;
+// Site Code [1 - 3] ~ [LinkedIn, Indeed, Glassdoor]
 var sitename = 0;
 
-
+/* ========= MAIN LISTENER THREAD (SOURCES: BACKGROUND) ========= */
 chrome.runtime.onMessage.addListener(
     function(message, sender, sendResponse){
         
+        // Screen is too small for proper display: EXIT
         if(window.innerWidth < 640) return;
 
+        // Background tests content script status
         if(message.ping === true) sendResponse({ pong: true });
 
+        // Background Script Operations
         else if(message.origin === "background"){
                 
             switch(message.operation){
+                // Content Script Injection [Validate]
                 case "validation":
+                    // no parsing worker set
                     if(sitename === 0) sendResponse({ set: false });
                     else sendResponse({ 
                         set: validate_parsing_worker(Boolean(parsingWorker), sitename) 
                     });
                     break;
 
+                // Determine Current Job Site [LinkedIn, Indeed, Glassdoor]
                 case "hosting":
                     set_sitename();
                     break;
 
+                // 
                 case "parsing":
                     run_parsing();
                     //parsing = true;
@@ -61,7 +76,7 @@ async function request_site_injection(sitename){
 /* ====== GENERAL PARSING METHODS ====== */
 async function run_parsing(){
     if(parsing) return;
-    else parsingWorker.set_method();
+    else set_sitename();
 }
 async function set_parsing_worker(injectionStatus){
     if(!injectionStatus) return false
