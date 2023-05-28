@@ -1,7 +1,7 @@
 {
   "name": "H1B Sponsor Checker",
   "description": "Find out whether any job opening offers H1B sponsorship.",
-  "version": "1.7.3",
+  "version": "1.8.1",
   "manifest_version": 3,
   "icons": {
     "128": "images/icon-128.png",
