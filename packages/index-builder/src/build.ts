@@ -14,10 +14,21 @@ import { parseHubCsv, type HubRow } from "./csv.ts";
 export const SHARD_COUNT = 256;
 export const FISCAL_YEARS_KEPT = 5;
 
+export const RANK_BANDS = ["top", "mid", "none"] as const;
+export type RankBand = (typeof RANK_BANDS)[number];
+
+export type YearCounts = {
+  ia: number;
+  id: number;
+  ca: number;
+  cd: number;
+};
+
 export type ShardEntry = {
   n: string;
   l: KnownLikelihood;
-  y: Record<string, [number, number, number, number]>;
+  rankBand: RankBand;
+  y: Record<string, YearCounts>;
 };
 
 export type ShardFile = {
@@ -96,6 +107,7 @@ export function companiesFromHubRows(rows: readonly HubRow[]): Company[] {
 }
 
 export function buildShards(companies: readonly Company[], indexVersion: string): ShardFile[] {
+  const cutoffs = p90InitialApprovalsByYear(companies);
   const shards: ShardFile[] = Array.from({ length: SHARD_COUNT }, () => ({
     indexVersion,
     normalizerVersion: NORMALIZER_VERSION,
@@ -106,14 +118,14 @@ export function buildShards(companies: readonly Company[], indexVersion: string)
     if (shard === undefined) continue;
     const years: ShardEntry["y"] = {};
     for (const record of company.records) {
-      years[String(record.fiscalYear)] = [
-        record.initialApprovals,
-        record.initialDenials,
-        record.continuingApprovals,
-        record.continuingDenials,
-      ];
+      years[String(record.fiscalYear)] = yearCounts(record);
     }
-    shard.entries[company.key] = { n: company.displayName, l: company.likelihood, y: years };
+    shard.entries[company.key] = {
+      n: company.displayName,
+      l: company.likelihood,
+      rankBand: rankBandFor(company.records, cutoffs),
+      y: years,
+    };
   }
   return shards;
 }
@@ -125,10 +137,10 @@ export function shardJson(shard: ShardFile): string {
     if (entry === undefined) continue;
     const years: ShardEntry["y"] = {};
     for (const year of Object.keys(entry.y).sort()) {
-      const tuple = entry.y[year];
-      if (tuple !== undefined) years[year] = tuple;
+      const counts = entry.y[year];
+      if (counts !== undefined) years[year] = { ia: counts.ia, id: counts.id, ca: counts.ca, cd: counts.cd };
     }
-    entries[key] = { n: entry.n, l: entry.l, y: years };
+    entries[key] = { n: entry.n, l: entry.l, rankBand: entry.rankBand, y: years };
   }
   return JSON.stringify({
     indexVersion: shard.indexVersion,
@@ -172,6 +184,48 @@ export function writeShards(dir: string, shards: readonly ShardFile[]): void {
   shards.forEach((shard, index) => {
     writeFileSync(join(dir, `${index}.json`), shardJson(shard));
   });
+}
+
+function yearCounts(record: SponsorRecord): YearCounts {
+  return {
+    ia: record.initialApprovals,
+    id: record.initialDenials,
+    ca: record.continuingApprovals,
+    cd: record.continuingDenials,
+  };
+}
+
+function p90InitialApprovalsByYear(companies: readonly Company[]): Map<number, number> {
+  const byYear = new Map<number, number[]>();
+  for (const company of companies) {
+    for (const record of company.records) {
+      const approvals = byYear.get(record.fiscalYear);
+      if (approvals === undefined) byYear.set(record.fiscalYear, [record.initialApprovals]);
+      else approvals.push(record.initialApprovals);
+    }
+  }
+  const cutoffs = new Map<number, number>();
+  for (const [year, approvals] of byYear) {
+    approvals.sort((a, b) => a - b);
+    cutoffs.set(year, percentileNearestRank(approvals, 90));
+  }
+  return cutoffs;
+}
+
+function rankBandFor(records: readonly SponsorRecord[], cutoffs: ReadonlyMap<number, number>): RankBand {
+  const latest = latestRecord(records);
+  if (latest === undefined || latest.initialApprovals <= 0) return "none";
+  const cutoff = cutoffs.get(latest.fiscalYear) ?? latest.initialApprovals;
+  if (latest.initialApprovals >= cutoff) return "top";
+  return "mid";
+}
+
+function latestRecord(records: readonly SponsorRecord[]): SponsorRecord | undefined {
+  let latest: SponsorRecord | undefined;
+  for (const record of records) {
+    if (latest === undefined || record.fiscalYear > latest.fiscalYear) latest = record;
+  }
+  return latest;
 }
 
 function emptyRecord(fiscalYear: number): SponsorRecord {

@@ -87,10 +87,35 @@ test("the builder writes 256 shard files and a size report", () => {
   const shard = JSON.parse(readFileSync(join(dir, `${shardIndex(googleKey)}.json`), "utf8"));
   assert.equal(shard.entries.google.n, "GOOGLE LLC");
   assert.equal(shard.entries.google.l, "frequent");
-  assert.deepEqual(shard.entries.google.y["2024"], [105, 2, 401, 3]);
+  assert.equal(shard.entries.google.rankBand, "top");
+  assert.deepEqual(shard.entries.google.y["2024"], { ia: 105, id: 2, ca: 401, cd: 3 });
+  assert.deepEqual(shard.entries.google.y["2023"], { ia: 80, id: 1, ca: 300, cd: 2 });
   const vegas = JSON.parse(readFileSync(join(dir, `${shardIndex("2k vegas")}.json`), "utf8"));
   assert.equal(vegas.entries["2k vegas"].n, "2K VEGAS, INC.");
+  assert.deepEqual(vegas.entries["2k vegas"].y["2024"], { ia: 4, id: 1, ca: 10, cd: 0 });
 });
+
+test("rankBand compares latest-year initial approvals with that year's 90th percentile", () => {
+  const header =
+    "Fiscal Year,Employer,Initial Approval,Initial Denial,Continuing Approval,Continuing Denial,NAICS,Tax ID,State,City,ZIP";
+  const rows = [0, 1, 2, 3, 4, 5, 6, 7, 8, 100].map(
+    (approvals) => `2024,FILER ${approvals} INC,${approvals},0,0,0,1,1,CA,Oakland,94607`,
+  );
+  rows.push("2023,PRIOR ONLY LLC,50,0,0,0,1,1,CA,Oakland,94607");
+  const built = buildIndex([header, ...rows].join("\n"), "idx-rank");
+  assert.equal(band(built, "FILER 0 INC"), "none");
+  assert.equal(band(built, "FILER 7 INC"), "mid");
+  assert.equal(band(built, "FILER 8 INC"), "top");
+  assert.equal(band(built, "FILER 100 INC"), "top");
+  assert.equal(band(built, "PRIOR ONLY LLC"), "top");
+  const prior = built.shards[shardIndex(normalizeCompanyName("PRIOR ONLY LLC"))]?.entries[normalizeCompanyName("PRIOR ONLY LLC")];
+  assert.deepEqual(prior?.y["2023"], { ia: 50, id: 0, ca: 0, cd: 0 });
+});
+
+function band(built: ReturnType<typeof buildIndex>, employer: string): string | undefined {
+  const key = normalizeCompanyName(employer);
+  return built.shards[shardIndex(key)]?.entries[key]?.rankBand;
+}
 
 test("a csv with the wrong header exits 1", () => {
   const dir = mkdtempSync(join(tmpdir(), "visaspotter-bad-csv-"));
