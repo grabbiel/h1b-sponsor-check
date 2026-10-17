@@ -1,4 +1,14 @@
-import { RemovalPolicy, Stack, type StackProps } from "aws-cdk-lib";
+import { CfnOutput, Duration, RemovalPolicy, Stack, type StackProps } from "aws-cdk-lib";
+import {
+  AllowedMethods,
+  CachePolicy,
+  Distribution,
+  ResponseHeadersPolicy,
+  S3OriginAccessControl,
+  ViewerProtocolPolicy,
+  type BehaviorOptions,
+} from "aws-cdk-lib/aws-cloudfront";
+import { S3BucketOrigin } from "aws-cdk-lib/aws-cloudfront-origins";
 import { AttributeType, BillingMode, Table } from "aws-cdk-lib/aws-dynamodb";
 import {
   BlockPublicAccess,
@@ -22,6 +32,78 @@ function privateBucket(scope: Construct, id: string, bucketName: string): Bucket
   });
 }
 
+function fixedTtlCache(scope: Construct, id: string, cachePolicyName: string, ttlSeconds: number): CachePolicy {
+  const ttl = Duration.seconds(ttlSeconds);
+  return new CachePolicy(scope, id, {
+    cachePolicyName,
+    minTtl: Duration.seconds(0),
+    defaultTtl: ttl,
+    maxTtl: ttl,
+    enableAcceptEncodingGzip: true,
+    enableAcceptEncodingBrotli: true,
+  });
+}
+
+function readBehavior(
+  origin: BehaviorOptions["origin"],
+  cachePolicy: CachePolicy,
+  cors: ResponseHeadersPolicy,
+): BehaviorOptions {
+  return {
+    origin,
+    viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+    allowedMethods: AllowedMethods.ALLOW_GET_HEAD,
+    cachePolicy,
+    responseHeadersPolicy: cors,
+    compress: true,
+  };
+}
+
+function publicDistribution(stack: Stack, bucket: Bucket): void {
+  const origin = S3BucketOrigin.withOriginAccessControl(bucket, {
+    originAccessControl: new S3OriginAccessControl(stack, "PublicOriginAccessControl", {
+      originAccessControlName: DATA_PLANE.originAccessControlName,
+    }),
+  });
+  const cors = new ResponseHeadersPolicy(stack, "PublicCors", {
+    responseHeadersPolicyName: DATA_PLANE.corsPolicyName,
+    corsBehavior: {
+      accessControlAllowCredentials: false,
+      accessControlAllowHeaders: ["*"],
+      accessControlAllowMethods: ["GET", "HEAD"],
+      accessControlAllowOrigins: ["*"],
+      originOverride: true,
+    },
+  });
+  const immutable = fixedTtlCache(
+    stack,
+    "ImmutableCache",
+    DATA_PLANE.immutableCachePolicyName,
+    DATA_PLANE.immutableTtlSeconds,
+  );
+  const pointer = fixedTtlCache(
+    stack,
+    "PointerCache",
+    DATA_PLANE.pointerCachePolicyName,
+    DATA_PLANE.pointerTtlSeconds,
+  );
+  const additionalBehaviors: Record<string, BehaviorOptions> = {};
+  for (const path of DATA_PLANE.pointerPaths) {
+    additionalBehaviors[path] = readBehavior(origin, pointer, cors);
+  }
+  const distribution = new Distribution(stack, "PublicDistribution", {
+    comment: DATA_PLANE.distributionComment,
+    defaultBehavior: readBehavior(origin, immutable, cors),
+    additionalBehaviors,
+  });
+  new CfnOutput(stack, DATA_PLANE.distributionDomainOutput, {
+    value: distribution.distributionDomainName,
+  });
+  new CfnOutput(stack, DATA_PLANE.distributionIdOutput, {
+    value: distribution.distributionId,
+  });
+}
+
 export class VisaSpotterStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps) {
     super(scope, id, props);
@@ -29,8 +111,10 @@ export class VisaSpotterStack extends Stack {
       parameterName: `/${IDENTITY.stackName}/marker`,
       stringValue: IDENTITY.stackName,
     });
-    // CloudFront OAC is the later reader. Direct public access stays off.
-    privateBucket(this, "PublicIndex", DATA_PLANE.publicBucketName);
+    publicDistribution(
+      this,
+      privateBucket(this, "PublicIndex", DATA_PLANE.publicBucketName),
+    );
     privateBucket(this, "RawDatasets", DATA_PLANE.rawBucketName);
     new Table(this, "Operations", {
       tableName: DATA_PLANE.tableName,
