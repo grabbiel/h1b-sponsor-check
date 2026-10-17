@@ -1,0 +1,11 @@
+{
+  "name": "visaspotter",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "npm test --workspaces --if-present",
+    "build-index": "node --experimental-strip-types packages/index-builder/src/cli.ts"
+  }
+}

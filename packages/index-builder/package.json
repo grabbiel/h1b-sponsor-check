@@ -1,0 +1,13 @@
+{
+  "name": "@visaspotter/index-builder",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "build": "node --experimental-strip-types src/cli.ts"
+  },
+  "dependencies": {
+    "@visaspotter/domain": "0.0.0"
+  }
+}

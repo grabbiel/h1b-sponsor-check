@@ -1,0 +1,83 @@
+declare const companyKeyBrand: unique symbol;
+
+export type CompanyKey = string & { readonly [companyKeyBrand]: "CompanyKey" };
+
+export const NORMALIZER_VERSION = 1;
+
+export type KnownLikelihood = "frequent" | "occasional" | "rare" | "none";
+
+export type Likelihood = KnownLikelihood | "unknown";
+
+export type FiscalYear = number;
+
+export type SponsorRecord = {
+  fiscalYear: FiscalYear;
+  initialApprovals: number;
+  initialDenials: number;
+  continuingApprovals: number;
+  continuingDenials: number;
+};
+
+export type Company = {
+  key: CompanyKey;
+  displayName: string;
+  likelihood: KnownLikelihood;
+  records: SponsorRecord[];
+};
+
+export type Platform = "linkedin" | "indeed";
+
+export type Posting = {
+  platform: Platform;
+  companyName: string;
+  title?: string;
+  description?: string;
+};
+
+export type LanguageVerdict =
+  | { kind: "explicit-no"; ruleId: string; excerpt: string }
+  | { kind: "sponsor-ok" };
+
+export type CompanyVerdict =
+  | { match: "matched"; companyId: CompanyKey; likelihood: KnownLikelihood }
+  | { match: "unmatched"; companyId: null; likelihood: "unknown" };
+
+export type Verdict = {
+  language: LanguageVerdict;
+  company: CompanyVerdict;
+};
+
+export const PAGE_KINDS = ["search", "job"] as const;
+export type PageKind = (typeof PAGE_KINDS)[number];
+
+export const SLOT_NAMES = [
+  "jobTitle",
+  "companyName",
+  "description",
+  "listingCompanyName",
+  "activeListing",
+] as const;
+export type SlotName = (typeof SLOT_NAMES)[number];
+
+export type SelectorPage = {
+  kind: PageKind;
+  detect: string[];
+  slots: Record<SlotName, string[]>;
+};
+
+export type SelectorPack = {
+  schema: 1;
+  platform: Platform;
+  version: number;
+  minExtensionVersion: string;
+  contentHash: string;
+  pages: SelectorPage[];
+};
+
+export type SelectorPackBody = Omit<SelectorPack, "contentHash">;
+
+export type SelectorPackError = "content-hash" | "forbidden-selector" | "invalid-pack";
+
+export type ParsedSelectorPack =
+  | { ok: true; pack: SelectorPack }
+  | { ok: false; error: SelectorPackError };
