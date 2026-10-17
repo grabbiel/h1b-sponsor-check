@@ -1,11 +1,18 @@
 import { execFileSync } from "node:child_process";
 import assert from "node:assert/strict";
+import { DATA_PLANE } from "../src/data-plane.ts";
 import { IDENTITY } from "../src/identity.ts";
 
 type Tag = { Key: string; Value: string };
 type StackResource = { ResourceType: string; PhysicalResourceId?: string };
 
-const allowedTypes = new Set(["AWS::SSM::Parameter", "AWS::CDK::Metadata"]);
+const allowedTypes = new Set([
+  "AWS::SSM::Parameter",
+  "AWS::CDK::Metadata",
+  "AWS::S3::Bucket",
+  "AWS::S3::BucketPolicy",
+  "AWS::DynamoDB::Table",
+]);
 
 function aws(args: string[]): unknown {
   const env = { ...process.env };
@@ -30,6 +37,15 @@ function assertTags(tags: Tag[], where: string): void {
   for (const [key, value] of Object.entries(IDENTITY.tags)) {
     assert.equal(found.get(key), value, `${where} tag ${key}`);
   }
+}
+
+function physicalIds(resources: StackResource[], type: string): string[] {
+  return resources
+    .filter((resource) => resource.ResourceType === type)
+    .map((resource) => {
+      assert.ok(resource.PhysicalResourceId, type);
+      return resource.PhysicalResourceId;
+    });
 }
 
 const identity = aws([
@@ -70,6 +86,126 @@ for (const resource of listed.StackResourceSummaries) {
   assert.ok(allowedTypes.has(resource.ResourceType), resource.ResourceType);
 }
 
+const bucketNames = physicalIds(listed.StackResourceSummaries, "AWS::S3::Bucket").sort();
+assert.deepEqual(
+  bucketNames,
+  [DATA_PLANE.publicBucketName, DATA_PLANE.rawBucketName].sort(),
+);
+for (const bucket of bucketNames) {
+  assert.ok(bucket.startsWith(IDENTITY.namePrefix), bucket);
+  const block = aws([
+    "s3api",
+    "get-public-access-block",
+    "--bucket",
+    bucket,
+    "--output",
+    "json",
+  ]) as {
+    PublicAccessBlockConfiguration: {
+      BlockPublicAcls: boolean;
+      IgnorePublicAcls: boolean;
+      BlockPublicPolicy: boolean;
+      RestrictPublicBuckets: boolean;
+    };
+  };
+  const access = block.PublicAccessBlockConfiguration;
+  assert.equal(access.BlockPublicAcls, true, bucket);
+  assert.equal(access.IgnorePublicAcls, true, bucket);
+  assert.equal(access.BlockPublicPolicy, true, bucket);
+  assert.equal(access.RestrictPublicBuckets, true, bucket);
+  const ownership = aws([
+    "s3api",
+    "get-bucket-ownership-controls",
+    "--bucket",
+    bucket,
+    "--output",
+    "json",
+  ]) as { OwnershipControls: { Rules: Array<{ ObjectOwnership: string }> } };
+  assert.equal(
+    ownership.OwnershipControls.Rules[0]?.ObjectOwnership,
+    "BucketOwnerEnforced",
+    bucket,
+  );
+  const publicity = aws([
+    "s3api",
+    "get-bucket-policy-status",
+    "--bucket",
+    bucket,
+    "--output",
+    "json",
+  ]) as { PolicyStatus: { IsPublic: boolean } };
+  assert.equal(publicity.PolicyStatus.IsPublic, false, bucket);
+  const encryption = aws([
+    "s3api",
+    "get-bucket-encryption",
+    "--bucket",
+    bucket,
+    "--output",
+    "json",
+  ]) as {
+    ServerSideEncryptionConfiguration: {
+      Rules: Array<{ ApplyServerSideEncryptionByDefault: { SSEAlgorithm: string } }>;
+    };
+  };
+  assert.equal(
+    encryption.ServerSideEncryptionConfiguration.Rules[0]?.ApplyServerSideEncryptionByDefault
+      .SSEAlgorithm,
+    "AES256",
+    bucket,
+  );
+  const tagging = aws([
+    "s3api",
+    "get-bucket-tagging",
+    "--bucket",
+    bucket,
+    "--output",
+    "json",
+  ]) as { TagSet: Tag[] };
+  assertTags(tagging.TagSet, bucket);
+}
+
+const tableIds = physicalIds(listed.StackResourceSummaries, "AWS::DynamoDB::Table");
+assert.deepEqual(tableIds, [DATA_PLANE.tableName]);
+const describedTable = aws([
+  "dynamodb",
+  "describe-table",
+  "--table-name",
+  DATA_PLANE.tableName,
+  "--output",
+  "json",
+]) as {
+  Table: {
+    TableName: string;
+    TableArn: string;
+    BillingModeSummary?: { BillingMode: string };
+    KeySchema: Array<{ AttributeName: string; KeyType: string }>;
+    AttributeDefinitions: Array<{ AttributeName: string; AttributeType: string }>;
+    GlobalSecondaryIndexes?: unknown;
+  };
+};
+const table = describedTable.Table;
+assert.equal(table.TableName, DATA_PLANE.tableName);
+assert.ok(table.TableName.startsWith(IDENTITY.namePrefix), table.TableName);
+assert.equal(table.BillingModeSummary?.BillingMode, "PAY_PER_REQUEST");
+assert.deepEqual(table.KeySchema, [
+  { AttributeName: DATA_PLANE.partitionKey, KeyType: "HASH" },
+  { AttributeName: DATA_PLANE.sortKey, KeyType: "RANGE" },
+]);
+assert.deepEqual(table.AttributeDefinitions, [
+  { AttributeName: DATA_PLANE.partitionKey, AttributeType: "S" },
+  { AttributeName: DATA_PLANE.sortKey, AttributeType: "S" },
+]);
+assert.equal(table.GlobalSecondaryIndexes, undefined);
+const tableTags = aws([
+  "dynamodb",
+  "list-tags-of-resource",
+  "--resource-arn",
+  table.TableArn,
+  "--output",
+  "json",
+]) as { Tags: Tag[] };
+assertTags(tableTags.Tags, table.TableName);
+
 const parameterTags = aws([
   "ssm",
   "list-tags-for-resource",
@@ -106,6 +242,9 @@ console.log(
       stack: IDENTITY.stackName,
       stackStatus: stack.StackStatus,
       resources: listed.StackResourceSummaries.map((resource) => resource.ResourceType),
+      buckets: bucketNames,
+      table: table.TableName,
+      tableBilling: table.BillingModeSummary?.BillingMode,
       toolkit: IDENTITY.toolkitStackName,
       toolkitStatus: toolkitStack.StackStatus,
     },

@@ -40,7 +40,7 @@ test("synth allows an explicit name that includes the visaspotter prefix", () =>
   app.synth();
 });
 
-test("visaspotter-dev publishes one tagged marker parameter", () => {
+test("visaspotter-dev tags the marker and stays inside the data plane", () => {
   const app = createApp();
   const assembly = app.synth();
   const template = Template.fromJSON(
@@ -61,8 +61,110 @@ test("visaspotter-dev publishes one tagged marker parameter", () => {
   const types = Object.values(resources).map((resource) => resource.Type).sort();
   assert.deepEqual(
     types.filter((type) => type !== "AWS::CDK::Metadata"),
-    ["AWS::SSM::Parameter"],
+    [
+      "AWS::DynamoDB::Table",
+      "AWS::S3::Bucket",
+      "AWS::S3::Bucket",
+      "AWS::S3::BucketPolicy",
+      "AWS::S3::BucketPolicy",
+      "AWS::SSM::Parameter",
+    ],
   );
+});
+
+test("data plane buckets stay private and the ops table is on-demand", () => {
+  const app = createApp();
+  const template = Template.fromJSON(
+    app.synth().getStackByName(IDENTITY.stackName).template,
+  );
+  const bucketContract = {
+    PublicAccessBlockConfiguration: {
+      BlockPublicAcls: true,
+      BlockPublicPolicy: true,
+      IgnorePublicAcls: true,
+      RestrictPublicBuckets: true,
+    },
+    OwnershipControls: {
+      Rules: [{ ObjectOwnership: "BucketOwnerEnforced" }],
+    },
+    BucketEncryption: {
+      ServerSideEncryptionConfiguration: [
+        { ServerSideEncryptionByDefault: { SSEAlgorithm: "AES256" } },
+      ],
+    },
+  };
+  template.hasResource("AWS::S3::Bucket", {
+    DeletionPolicy: "Retain",
+    Properties: {
+      BucketName: "visaspotter-dev-public-028658486564",
+      ...bucketContract,
+    },
+  });
+  template.hasResource("AWS::S3::Bucket", {
+    DeletionPolicy: "Retain",
+    Properties: {
+      BucketName: "visaspotter-dev-raw-028658486564",
+      ...bucketContract,
+    },
+  });
+  template.resourceCountIs("AWS::S3::Bucket", 2);
+  const buckets = template.findResources("AWS::S3::Bucket");
+  for (const bucket of Object.values(buckets)) {
+    const tags = bucket.Properties.Tags as Array<{ Key: string; Value: string }>;
+    assert.deepEqual(
+      tags.map((tag) => [tag.Key, tag.Value]).sort(),
+      [
+        ["Environment", "dev"],
+        ["ManagedBy", "cdk"],
+        ["Project", "visaspotter"],
+      ],
+    );
+  }
+  const policies = template.findResources("AWS::S3::BucketPolicy");
+  assert.equal(Object.keys(policies).length, 2);
+  for (const policy of Object.values(policies)) {
+    const statements = policy.Properties.PolicyDocument.Statement as Array<{
+      Effect: string;
+      Condition?: { Bool?: Record<string, string> };
+    }>;
+    assert.ok(
+      statements.some(
+        (statement) =>
+          statement.Effect === "Deny" &&
+          statement.Condition?.Bool?.["aws:SecureTransport"] === "false",
+      ),
+    );
+  }
+  template.hasResource("AWS::DynamoDB::Table", {
+    DeletionPolicy: "Retain",
+    Properties: {
+      TableName: "visaspotter-dev",
+      BillingMode: "PAY_PER_REQUEST",
+      KeySchema: [
+        { AttributeName: "pk", KeyType: "HASH" },
+        { AttributeName: "sk", KeyType: "RANGE" },
+      ],
+      AttributeDefinitions: [
+        { AttributeName: "pk", AttributeType: "S" },
+        { AttributeName: "sk", AttributeType: "S" },
+      ],
+    },
+  });
+  const tables = template.findResources("AWS::DynamoDB::Table");
+  assert.equal(Object.keys(tables).length, 1);
+  for (const table of Object.values(tables)) {
+    assert.equal(table.Properties.GlobalSecondaryIndexes, undefined);
+    assert.equal(table.Properties.LocalSecondaryIndexes, undefined);
+    const tags = table.Properties.Tags as Array<{ Key: string; Value: string }>;
+    assert.deepEqual(
+      tags.map((tag) => [tag.Key, tag.Value]).sort(),
+      [
+        ["Environment", "dev"],
+        ["ManagedBy", "cdk"],
+        ["Project", "visaspotter"],
+      ],
+    );
+  }
 });
 
 test("cdk.json pins the dedicated toolkit stack and qualifier", () => {
