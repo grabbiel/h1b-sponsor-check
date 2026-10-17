@@ -1,0 +1,7 @@
+{
+  "app": "node --experimental-strip-types src/app.ts",
+  "toolkitStackName": "visaspotter-cdk-toolkit",
+  "context": {
+    "@aws-cdk/core:bootstrapQualifier": "visaspot"
+  }
+}

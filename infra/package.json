@@ -1,0 +1,19 @@
+{
+  "name": "@visaspotter/infra",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "synth": "cdk synth",
+    "deploy": "cdk deploy visaspotter-dev --require-approval never",
+    "verify-deploy": "node --experimental-strip-types scripts/verify-deploy.ts"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.214.0",
+    "constructs": "^10.4.2"
+  },
+  "devDependencies": {
+    "aws-cdk": "^2.214.0"
+  }
+}
