@@ -2,7 +2,8 @@
   "name": "visaspotter",
   "private": true,
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "infra"
   ],
   "scripts": {
     "test": "npm test --workspaces --if-present",
