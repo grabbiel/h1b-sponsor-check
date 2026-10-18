@@ -274,7 +274,7 @@ test("public index reads use origin access control, CORS, and pointer TTLs", () 
     "visaspotter-dev-public-028658486564",
   );
   const behaviors = [config.DefaultCacheBehavior, ...(config.CacheBehaviors ?? [])];
-  assert.equal(behaviors.length, 5);
+  assert.equal(behaviors.length, 6);
   for (const behavior of behaviors) {
     assert.ok(behavior);
     assert.deepEqual(behavior.AllowedMethods, ["GET", "HEAD"]);
@@ -325,6 +325,7 @@ test("public index reads use origin access control, CORS, and pointer TTLs", () 
     "config/current.json",
     "v1/index/current.json",
     "v1/config/current.json",
+    "v1/selectors/current.json",
   ]);
   for (const behavior of config.CacheBehaviors ?? []) {
     const policyId = behavior.CachePolicyId?.Ref;

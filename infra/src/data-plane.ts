@@ -18,6 +18,7 @@ export const DATA_PLANE = {
     "config/current.json",
     "v1/index/current.json",
     "v1/config/current.json",
+    "v1/selectors/current.json",
   ],
   pointerTtlSeconds: 3600,
   immutableTtlSeconds: 31536000,

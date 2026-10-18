@@ -5,7 +5,9 @@
   "type": "module",
   "exports": {
     ".": "./src/build.ts",
-    "./csv": "./src/csv.ts"
+    "./csv": "./src/csv.ts",
+    "./publish": "./src/publish.ts",
+    "./aws": "./src/aws.ts"
   },
   "scripts": {
     "test": "node --experimental-strip-types --test test/*.test.ts",
