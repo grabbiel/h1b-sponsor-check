@@ -7,6 +7,7 @@
   ],
   "scripts": {
     "test": "npm test --workspaces --if-present",
-    "build-index": "node --experimental-strip-types packages/index-builder/src/cli.ts"
+    "build-index": "node --experimental-strip-types packages/index-builder/src/cli.ts",
+    "publish-index": "node --experimental-strip-types packages/index-builder/src/cli.ts --bucket visaspotter-dev-public-028658486564 --distribution EJ6ROBSDC5JA6"
   }
 }
