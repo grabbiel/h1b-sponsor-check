@@ -13,11 +13,9 @@ export const content_scripts = ["./modules/contents/operations/validation.js",
 "./modules/contents/messaging.js"];
 
 /* ======== SITE-SPECIFIC CONTENT SCRIPTS ======== */
-export const linkedin_content_scripts = ["./modules/contents/page.js",
-"./modules/contents/linkedin/pages/jobsearch.js",
-"./modules/contents/linkedin/pages/recommended.js",
-"./modules/contents/linkedin/pages/jobview.js",
-"./modules/contents/linkedin/listing.js",
+export const linkedin_content_scripts = ["./modules/contents/selectors.js",
+"./modules/contents/page.js",
+"./modules/contents/listing.js",
 "./modules/contents/linkedin/linkedin.js"
 ];
 

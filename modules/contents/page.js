@@ -20,3 +20,26 @@ class PageManipulation{
         this.cname = this.nameholder.innerText.trim();
     }
 }
+class SlotPage extends PageManipulation{
+    constructor(documentbody, page){
+        super();
+        this.positionholder = find_slot(documentbody, page, "jobTitle");
+        this.descriptionholder = find_slot(documentbody, page, "description");
+        this.nameholder = find_slot(documentbody, page, "companyName");
+        this.cname = this.nameholder?.innerText.trim() ?? "";
+    }
+    submit(){
+        if(this.descriptionholder !== null){
+            new Messaging({origin: "content", operation: "submit", data:{
+                description: true,
+                content: this.getDescription()
+            }});
+        }
+        if(this.cname !== ""){
+            new Messaging({origin: "content", operation: "submit", data:{
+                name: true,
+                content: this.cname
+            }});
+        }
+    }
+}

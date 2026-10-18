@@ -2,27 +2,19 @@ class IndeedWorker extends GeneralParsingWorker{ // extend parent
     constructor(){
         super();
     }
-    set_method(){
+    set_method(pack){
         parsing = true;
         this.documentbody = document.body;
-        this.#determine_page();
-    }
-    #determine_page(){
-        if(this.documentbody.querySelector("[class*='jobsearch-JobCountAndSortPane-jobCount']")){
-            this.jobposting = new IndeedSearchPage(this.documentbody);
-            this.searchresults = new IndeedPostingsListing(this.documentbody);
-        }
-        else if(
-            this.documentbody.querySelector("#cmp-JobSearchInput-cmp-JobsHeader-what") ||
-            this.documentbody.querySelector("[data-testid='cmp-JobSearchInput']") || 
-            this.documentbody.querySelector("[action^='/cmp/']") ||
-            this.documentbody.querySelector("[for='cmp-JobSearchInput-cmp-JobsHeader-what']") ||
-            this.documentbody.querySelector("[data-tn-element='NonIAApplyButton']")
-        ){
+        const page = pack === null ? null : find_pack_page(pack, this.documentbody);
+        if(page === null) return;
+        this.jobposting = new SlotPage(this.documentbody, page);
+        if(page.kind === "search") this.searchresults = new PostingsListing(this.documentbody, page);
+        else{
             this.clear_search_cache();
-            this.jobposting = new IndeedCompanyPage(this.documentbody);
+            for(const holder of [this.jobposting.positionholder, this.jobposting.nameholder]){
+                if(holder !== null) holder.style.display = "flex";
+            }
         }
-            
+        this.jobposting.submit();
     }
-
 }
