@@ -42,7 +42,7 @@ class CompanyBadge{
     #createPath(status){
         const path = document.createElementNS("http://www.w3.org/2000/svg","path");
         path.style.verticalAlign = "middle";
-        if(status==1){
+        if(status?.mark === "sponsor"){
             path.setAttribute("fill","#0FFF00");
             path.addEventListener("mouseover",e=>{
                 path.setAttribute("fill","#0cb500");

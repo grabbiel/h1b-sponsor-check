@@ -1,4 +1,5 @@
 import Message from "./mainmessage.js";
+import { popupSummary } from "../listing-cutover.js";
 export default class Popup{
     constructor(tabId, postingelement, message, sendResponse){
         this.current_tab_id = tabId;
@@ -19,7 +20,8 @@ export default class Popup{
                 popup: true, content:{
                     cname: postingelement.companyName,
                     cdescription: postingelement.postIsFriendly,
-                    h1bdata: postingelement.h1bData
+                    h1bdata: postingelement.h1bData,
+                    summary: postingelement.companyBadge == null ? null : popupSummary(postingelement.companyName, postingelement.languageBadge, postingelement.companyBadge)
                 }
             });
         }
