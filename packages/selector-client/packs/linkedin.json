@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "platform": "linkedin",
+  "version": 1,
+  "minExtensionVersion": "1.8.1",
+  "pages": [
+    {
+      "kind": "search",
+      "detect": [
+        ".jobs-search-results__list-item"
+      ],
+      "slots": {
+        "jobTitle": [
+          "#main div > .jobs-search__job-details > .jobs-search__job-details--container > .jobs-details > div:not([class]) > div > div:not([id]) > .jobs-unified-top-card > div > [class^='jobs-unified-top-card__content'] > a > [class*='job']"
+        ],
+        "companyName": [
+          "#main div > .jobs-search__job-details > .jobs-search__job-details--container > .jobs-details > div:not([class]) > div > div:not([id]) > .jobs-unified-top-card > div .jobs-unified-top-card__company-name"
+        ],
+        "description": [
+          "#main div > .jobs-search__job-details > .jobs-search__job-details--container > .jobs-details > div:not([class]) > div #job-details > span"
+        ],
+        "listingCompanyName": [
+          "[class*='-card-container__primary-description']"
+        ],
+        "activeListing": [
+          ".jobs-search-results-list__list-item--active"
+        ]
+      }
+    },
+    {
+      "kind": "job",
+      "detect": [
+        ".jobs-unified-top-card__job-title"
+      ],
+      "slots": {
+        "jobTitle": [
+          "[role='main'] div:not([class]) > div > div > .p5 h1"
+        ],
+        "companyName": [
+          "[role='main'] div:not([class]) > div > div > .p5 [class*='company-name'] > a"
+        ],
+        "description": [
+          "[role='main'] [class*='jobs-description'] > article > div > [class*='content'] > span"
+        ],
+        "listingCompanyName": [
+          "[class*='-card-container__primary-description']"
+        ],
+        "activeListing": [
+          ".jobs-search-results-list__list-item--active"
+        ]
+      }
+    }
+  ],
+  "contentHash": "96af95fb228deeb5b888dffc401b5e75adb11efa1cbf24799a7cd3e9a1b0b685"
+}
