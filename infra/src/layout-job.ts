@@ -8,7 +8,7 @@ import { Effect, PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { Architecture, FunctionUrlAuthType, HttpMethod, Runtime } from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction, OutputFormat } from "aws-cdk-lib/aws-lambda-nodejs";
 import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs";
-import { ALERT_LAYOUT_PK, HEALTH_PK_PREFIX, LAYOUT_PK_PREFIX } from "@visaspotter/layout-job/keys";
+import { ALERT_LAYOUT_PK, HEALTH_PK_PREFIX, LAYOUT_PK_PREFIX, UNMATCHED_PK_PREFIX } from "@visaspotter/layout-job/keys";
 import { DATA_PLANE } from "./data-plane.ts";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
@@ -89,7 +89,9 @@ export function addLayoutJob(stack: Stack, table: Table): void {
   layout.addToRolePolicy(
     leadingKeys(table, ["dynamodb:PutItem"], [`${LAYOUT_PK_PREFIX}*`, ALERT_LAYOUT_PK]),
   );
-  reports.addToRolePolicy(leadingKeys(table, ["dynamodb:UpdateItem"], [`${HEALTH_PK_PREFIX}*`]));
+  reports.addToRolePolicy(
+    leadingKeys(table, ["dynamodb:UpdateItem"], [`${HEALTH_PK_PREFIX}*`, `${UNMATCHED_PK_PREFIX}*`]),
+  );
   const url = reports.addFunctionUrl({
     authType: FunctionUrlAuthType.NONE,
     cors: {

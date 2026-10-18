@@ -545,6 +545,7 @@ test("layout health runs daily and the report URL accepts anonymous posts", () =
   }
   const policyText = JSON.stringify(template.findResources("AWS::IAM::Policy"));
   assert.equal(policyText.includes("HEALTH#*"), true);
+  assert.equal(policyText.includes("UNMATCHED#*"), true);
   assert.equal(policyText.includes("LAYOUT#*"), true);
   assert.equal(policyText.includes("ALERT#layout"), true);
   assert.equal(policyText.includes("dynamodb:UpdateItem"), true);

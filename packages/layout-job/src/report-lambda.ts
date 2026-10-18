@@ -2,7 +2,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { isConditionalCheckFailed, requiredEnv } from "./dynamo.ts";
 import type { HealthUpdate } from "./health.ts";
-import { handleReport, type ReportResponse } from "./report.ts";
+import { handleReport, type ReportResponse, type UnmatchedUpdate } from "./report.ts";
 
 type JsonHeaders = { "content-type": "application/json" };
 
@@ -21,10 +21,35 @@ export async function handler(event: unknown): Promise<ReportLambdaResult> {
   }
   const tableName = requiredEnv("TABLE_NAME");
   const documents = DynamoDBDocumentClient.from(new DynamoDBClient({}));
-  for (const update of decision.updates) {
-    await applyUpdate(documents, tableName, update);
+  if (decision.kind === "health") {
+    for (const update of decision.updates) await applyUpdate(documents, tableName, update);
+  } else {
+    for (const update of decision.updates) await applyUnmatched(documents, tableName, update);
   }
   return { statusCode: 204 };
+}
+
+async function applyUnmatched(
+  documents: DynamoDBDocumentClient,
+  tableName: string,
+  update: UnmatchedUpdate,
+): Promise<void> {
+  await documents.send(
+    new UpdateCommand({
+      TableName: tableName,
+      Key: { pk: update.pk, sk: update.sk },
+      UpdateExpression:
+        "ADD #count :one SET lastSeen = :at, sampleRaw = if_not_exists(sampleRaw, :sample), #ttl = if_not_exists(#ttl, :ttl), kind = if_not_exists(kind, :kind)",
+      ExpressionAttributeNames: { "#count": "count", "#ttl": "ttl" },
+      ExpressionAttributeValues: {
+        ":one": 1,
+        ":at": update.at,
+        ":sample": update.sampleRaw,
+        ":ttl": update.ttl,
+        ":kind": "unmatched-company",
+      },
+    }),
+  );
 }
 
 async function applyUpdate(

@@ -177,7 +177,7 @@ test("aggregate defaults to yesterday and rejects a bad day", () => {
 test("a selector report becomes one counter update per slot on today's key", () => {
   const decision = handleReport(post(validReport), NOW);
   assert.equal(decision.statusCode, 204);
-  if (decision.statusCode !== 204) return;
+  if (decision.statusCode !== 204 || decision.kind !== "health") return;
   assert.equal(decision.updates.length, 2);
   assert.equal(decision.updates[0]?.pk, "HEALTH#2026-10-18");
   assert.equal(decision.updates[0]?.sk, "linkedin#search#12#jobTitle");
@@ -190,6 +190,37 @@ test("a selector report becomes one counter update per slot on today's key", () 
     outcome: "hit",
     index: 1,
   });
+});
+
+test("an unmatched name list becomes one counter per normalized company", () => {
+  const decision = handleReport(
+    post(
+      { platform: "indeed", names: ["Acme Robotics Labs", "The Google, Inc."] },
+      { rawPath: "/v1/reports/unmatched" },
+    ),
+    NOW,
+  );
+  assert.equal(decision.statusCode, 204);
+  if (decision.statusCode !== 204 || decision.kind !== "unmatched") return;
+  assert.deepEqual(
+    decision.updates.map((update) => update.sk),
+    ["acme robotics labs", "google"],
+  );
+  assert.equal(decision.updates[0]?.pk, "UNMATCHED#indeed");
+  assert.equal(decision.updates[0]?.sampleRaw, "Acme Robotics Labs");
+  assert.equal(decision.updates[0]?.ttl, Math.floor(Date.parse(NOW_ISO) / 1000) + 90 * 24 * 60 * 60);
+  assert.equal(
+    handleReport(post({ platform: "indeed", names: ["x".repeat(201)] }, { rawPath: "/v1/reports/unmatched" }), NOW)
+      .statusCode,
+    400,
+  );
+  assert.equal(
+    handleReport(
+      post({ platform: "indeed", names: Array.from({ length: 21 }, () => "Acme") }, { rawPath: "/v1/reports/unmatched" }),
+      NOW,
+    ).statusCode,
+    400,
+  );
 });
 
 test("a payload 1.0 report is accepted", () => {
@@ -226,7 +257,7 @@ test("report validation rejects unknown slots, bad hits, long strings, and the w
     handleReport(post({ ...validReport, extVersion: "x".repeat(201) }), NOW).statusCode,
     400,
   );
-  assert.equal(handleReport(post("{}", { rawPath: "/v1/reports/unmatched" }), NOW).statusCode, 404);
+  assert.equal(handleReport(post("{}", { rawPath: "/v1/reports/other" }), NOW).statusCode, 404);
   assert.equal(
     handleReport(post(validReport, { requestContext: { http: { method: "GET" } } }), NOW).statusCode,
     405,

@@ -1,10 +1,20 @@
-import { PAGE_KINDS, SLOT_NAMES, type PageKind, type Platform, type SlotName } from "@visaspotter/domain";
-import { utcDay, type UtcDay } from "./day.ts";
+import {
+  normalizeCompanyName,
+  PAGE_KINDS,
+  SLOT_NAMES,
+  type CompanyKey,
+  type PageKind,
+  type Platform,
+  type SlotName,
+} from "@visaspotter/domain";
+import { ttlSeconds, utcDay, type UtcDay } from "./day.ts";
 import { healthTtl, isHitIndex, type HealthUpdate, type HitIndex } from "./health.ts";
-import { HEALTH_PK_PREFIX, REPORT_PATH } from "./keys.ts";
+import { HEALTH_PK_PREFIX, REPORT_PATH, UNMATCHED_PATH, UNMATCHED_PK_PREFIX } from "./keys.ts";
 
 const MAX_BYTES = 4096;
 const MAX_TEXT = 200;
+const MAX_NAMES = 20;
+const UNMATCHED_TTL_DAYS = 90;
 
 const REPORT_KEYS = new Set(["extVersion", "platform", "pageKind", "packVersion", "slots"]);
 
@@ -18,8 +28,17 @@ export type ReportError =
   | "unknown-slot"
   | "invalid-hit";
 
+export type UnmatchedUpdate = {
+  pk: string;
+  sk: CompanyKey;
+  sampleRaw: string;
+  at: string;
+  ttl: number;
+};
+
 export type ReportResponse =
-  | { statusCode: 204; updates: HealthUpdate[] }
+  | { statusCode: 204; kind: "health"; updates: HealthUpdate[] }
+  | { statusCode: 204; kind: "unmatched"; updates: UnmatchedUpdate[] }
   | { statusCode: 400 | 413; error: ReportError }
   | { statusCode: 404; error: "not-found" }
   | { statusCode: 405; error: "method" };
@@ -27,17 +46,23 @@ export type ReportResponse =
 export function handleReport(event: unknown, now: Date): ReportResponse {
   const http = readHttp(event);
   if (!http.ok) return reject(http.error);
-  if (http.path !== REPORT_PATH) return { statusCode: 404, error: "not-found" };
   if (http.method !== "POST") return { statusCode: 405, error: "method" };
+  if (http.path !== REPORT_PATH && http.path !== UNMATCHED_PATH) return { statusCode: 404, error: "not-found" };
   let json: unknown;
   try {
     json = JSON.parse(http.body);
   } catch {
     return reject("invalid-json");
   }
-  const parsed = parseReport(json, utcDay(now), now.toISOString());
+  const nowIso = now.toISOString();
+  if (http.path === UNMATCHED_PATH) {
+    const parsed = parseUnmatched(json, nowIso);
+    if (!parsed.ok) return reject(parsed.error);
+    return { statusCode: 204, kind: "unmatched", updates: parsed.updates };
+  }
+  const parsed = parseReport(json, utcDay(now), nowIso);
   if (!parsed.ok) return reject(parsed.error);
-  return { statusCode: 204, updates: parsed.updates };
+  return { statusCode: 204, kind: "health", updates: parsed.updates };
 }
 
 function reject(error: ReportError): ReportResponse {
@@ -120,6 +145,40 @@ function readObservation(value: unknown): { ok: true; hit: HitIndex | "miss" } |
   if (value === -1) return { ok: true, hit: "miss" };
   if (!isHitIndex(value)) return { ok: false, error: "invalid-hit" };
   return { ok: true, hit: value };
+}
+
+const UNMATCHED_KEYS = new Set(["platform", "names"]);
+
+function parseUnmatched(
+  input: unknown,
+  nowIso: string,
+): { ok: true; updates: UnmatchedUpdate[] } | { ok: false; error: ReportError } {
+  if (!isRecord(input) || Object.keys(input).some((key) => !UNMATCHED_KEYS.has(key))) {
+    return { ok: false, error: "invalid-report" };
+  }
+  if (typeof input.platform !== "string" || !isPlatform(input.platform)) {
+    return { ok: false, error: "unknown-platform" };
+  }
+  if (!Array.isArray(input.names) || input.names.length === 0 || input.names.length > MAX_NAMES) {
+    return { ok: false, error: "invalid-report" };
+  }
+  const updates: UnmatchedUpdate[] = [];
+  const ttl = ttlSeconds(nowIso, UNMATCHED_TTL_DAYS);
+  for (const name of input.names) {
+    if (typeof name !== "string" || name.length === 0 || name.length > MAX_TEXT) {
+      return { ok: false, error: "invalid-report" };
+    }
+    const key = normalizeCompanyName(name);
+    if (key.length === 0) continue;
+    updates.push({
+      pk: `${UNMATCHED_PK_PREFIX}${input.platform}`,
+      sk: key,
+      sampleRaw: name,
+      at: nowIso,
+      ttl,
+    });
+  }
+  return { ok: true, updates };
 }
 
 function isPlatform(value: string): value is Platform {
