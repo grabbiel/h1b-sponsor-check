@@ -69,10 +69,23 @@ test("visaspotter-dev tags the marker and stays inside the data plane", () => {
       "AWS::CloudFront::ResponseHeadersPolicy",
       "AWS::DynamoDB::Table",
       "AWS::Events::Rule",
+      "AWS::Events::Rule",
+      "AWS::IAM::Policy",
+      "AWS::IAM::Policy",
       "AWS::IAM::Policy",
       "AWS::IAM::Role",
+      "AWS::IAM::Role",
+      "AWS::IAM::Role",
+      "AWS::Lambda::Function",
+      "AWS::Lambda::Function",
       "AWS::Lambda::Function",
       "AWS::Lambda::Permission",
+      "AWS::Lambda::Permission",
+      "AWS::Lambda::Permission",
+      "AWS::Lambda::Permission",
+      "AWS::Lambda::Url",
+      "AWS::Logs::LogGroup",
+      "AWS::Logs::LogGroup",
       "AWS::Logs::LogGroup",
       "AWS::S3::Bucket",
       "AWS::S3::Bucket",
@@ -421,8 +434,8 @@ test("cdk.json pins the dedicated toolkit stack and qualifier", () => {
 
 test("the dataset rule runs visaspotter-dev-dataset every 14 days with alerts off", () => {
   const template = stackTemplate();
-  template.resourceCountIs("AWS::Lambda::Function", 1);
-  template.resourceCountIs("AWS::Events::Rule", 1);
+  template.resourceCountIs("AWS::Lambda::Function", 3);
+  template.resourceCountIs("AWS::Events::Rule", 2);
   template.hasResourceProperties("AWS::Lambda::Function", {
     FunctionName: "visaspotter-dev-dataset",
     Runtime: "nodejs22.x",
@@ -449,7 +462,10 @@ test("the dataset rule runs visaspotter-dev-dataset every 14 days with alerts of
     RetentionInDays: 14,
   });
   const rules = template.findResources("AWS::Events::Rule");
-  const rule = Object.values(rules)[0] as {
+  const rule = Object.values(rules).find(
+    (candidate) =>
+      (candidate as { Properties: { Name?: string } }).Properties.Name === "visaspotter-dev-dataset-watch",
+  ) as {
     Properties: { Targets: Array<{ Input?: string; Arn?: { "Fn::GetAtt"?: string[] } }> };
   };
   assert.equal(rule.Properties.Targets.length, 1);
@@ -457,7 +473,10 @@ test("the dataset rule runs visaspotter-dev-dataset every 14 days with alerts of
   assert.ok(target);
   assert.equal(target.Input, JSON.stringify({ mode: "watch" }));
   const functions = template.findResources("AWS::Lambda::Function");
-  const functionId = Object.keys(functions)[0];
+  const functionId = Object.entries(functions).find(
+    ([, fn]) =>
+      (fn as { Properties: { FunctionName?: string } }).Properties.FunctionName === "visaspotter-dev-dataset",
+  )?.[0];
   assert.equal(target.Arn?.["Fn::GetAtt"]?.[0], functionId);
   const json = JSON.stringify(template.toJSON());
   assert.equal(json.includes("ses:"), false);
@@ -469,4 +488,68 @@ test("the dataset rule runs visaspotter-dev-dataset every 14 days with alerts of
   assert.equal(policyText.includes("index/current.json"), true);
   assert.equal(policyText.includes("v1/index/*"), true);
   assert.equal(policyText.includes("raw/uscis/*"), true);
+});
+
+test("layout health runs daily and the report URL accepts anonymous posts", () => {
+  const template = stackTemplate();
+  template.hasResourceProperties("AWS::Lambda::Function", {
+    FunctionName: "visaspotter-dev-layout-health",
+    Runtime: "nodejs22.x",
+    Architectures: ["arm64"],
+    Timeout: 30,
+    Environment: {
+      Variables: {
+        ALERTS_ENABLED: "false",
+        TABLE_NAME: "visaspotter-dev",
+      },
+    },
+  });
+  template.hasResourceProperties("AWS::Lambda::Function", {
+    FunctionName: "visaspotter-dev-reports",
+    Runtime: "nodejs22.x",
+    Timeout: 10,
+    Environment: {
+      Variables: {
+        TABLE_NAME: "visaspotter-dev",
+      },
+    },
+  });
+  template.hasResourceProperties("AWS::Events::Rule", {
+    Name: "visaspotter-dev-layout-health",
+    ScheduleExpression: "cron(0 9 * * ? *)",
+    State: "ENABLED",
+  });
+  const rules = template.findResources("AWS::Events::Rule");
+  const layoutRule = Object.values(rules).find(
+    (rule) => (rule as { Properties: { Name?: string } }).Properties.Name === "visaspotter-dev-layout-health",
+  ) as { Properties: { Targets: Array<{ Input?: string; Arn?: { "Fn::GetAtt"?: string[] } }> } };
+  assert.equal(layoutRule.Properties.Targets[0]?.Input, JSON.stringify({ mode: "aggregate" }));
+  const layoutFunctionId = Object.entries(template.findResources("AWS::Lambda::Function")).find(
+    ([, fn]) =>
+      (fn as { Properties: { FunctionName?: string } }).Properties.FunctionName === "visaspotter-dev-layout-health",
+  )?.[0];
+  assert.equal(layoutRule.Properties.Targets[0]?.Arn?.["Fn::GetAtt"]?.[0], layoutFunctionId);
+  const urls = template.findResources("AWS::Lambda::Url");
+  assert.equal(Object.keys(urls).length, 1);
+  const url = Object.values(urls)[0] as {
+    Properties: { AuthType: string; Cors: { AllowOrigins: string[]; AllowMethods: string[] } };
+  };
+  assert.equal(url.Properties.AuthType, "NONE");
+  assert.deepEqual(url.Properties.Cors.AllowOrigins, ["*"]);
+  assert.deepEqual(url.Properties.Cors.AllowMethods, ["POST"]);
+  const functions = template.findResources("AWS::Lambda::Function");
+  for (const fn of Object.values(functions)) {
+    const reserved = (fn as { Properties: { ReservedConcurrentExecutions?: number } }).Properties
+      .ReservedConcurrentExecutions;
+    assert.equal(reserved, undefined);
+  }
+  const policyText = JSON.stringify(template.findResources("AWS::IAM::Policy"));
+  assert.equal(policyText.includes("HEALTH#*"), true);
+  assert.equal(policyText.includes("UNMATCHED#*"), true);
+  assert.equal(policyText.includes("LAYOUT#*"), true);
+  assert.equal(policyText.includes("ALERT#layout"), true);
+  assert.equal(policyText.includes("dynamodb:UpdateItem"), true);
+  assert.equal(JSON.stringify(template.toJSON()).includes("ses:"), false);
+  const outputs = template.toJSON().Outputs as Record<string, { Value: unknown }>;
+  assert.ok(outputs.ReportsFunctionUrl);
 });

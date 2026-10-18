@@ -21,6 +21,7 @@ import type { Construct } from "constructs";
 import { DATA_PLANE } from "./data-plane.ts";
 import { addDatasetJob } from "./dataset-job.ts";
 import { IDENTITY } from "./identity.ts";
+import { addLayoutJob } from "./layout-job.ts";
 
 function privateBucket(scope: Construct, id: string, bucketName: string): Bucket {
   return new Bucket(scope, id, {
@@ -124,5 +125,6 @@ export class VisaSpotterStack extends Stack {
       removalPolicy: RemovalPolicy.RETAIN,
     });
     addDatasetJob(this, { raw: rawBucket, public: publicBucket, table: operations });
+    addLayoutJob(this, operations);
   }
 }

@@ -25,6 +25,7 @@ const allowedTypes = new Set([
   "AWS::IAM::Policy",
   "AWS::Events::Rule",
   "AWS::Logs::LogGroup",
+  "AWS::Lambda::Url",
 ]);
 
 function aws(args: string[]): unknown {

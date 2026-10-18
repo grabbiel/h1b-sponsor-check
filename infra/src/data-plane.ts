@@ -25,4 +25,11 @@ export const DATA_PLANE = {
   datasetFunctionName: `${IDENTITY.stackName}-dataset`,
   datasetRuleName: `${IDENTITY.stackName}-dataset-watch`,
   datasetLogGroupName: `/aws/lambda/${IDENTITY.stackName}-dataset`,
+  layoutFunctionName: `${IDENTITY.stackName}-layout-health`,
+  layoutRuleName: `${IDENTITY.stackName}-layout-health`,
+  layoutLogGroupName: `/aws/lambda/${IDENTITY.stackName}-layout-health`,
+  layoutSchedule: "cron(0 9 * * ? *)",
+  reportsFunctionName: `${IDENTITY.stackName}-reports`,
+  reportsLogGroupName: `/aws/lambda/${IDENTITY.stackName}-reports`,
+  reportsUrlOutput: "ReportsFunctionUrl",
 } as const;
