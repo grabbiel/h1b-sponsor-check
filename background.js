@@ -1,6 +1,14 @@
 import Content from "./modules/background/messaging/content.js";
 import Popup from "./modules/background/messaging/popup.js";
 import { posting, content_scripts } from "./utilities.js";
+import { INDEX_BASE, createIndexClient } from "./packages/index-client/src/client.js";
+import { indexLookupRequest } from "./packages/index-client/src/route.js";
+import { cacheApiIndexStore } from "./packages/index-client/src/store.js";
+
+const indexClient = createIndexClient({
+  baseUrl: INDEX_BASE,
+  store: cacheApiIndexStore(caches),
+});
 
 var current_tab_id = null; 
 
@@ -88,6 +96,14 @@ const validateSiteInjection = (tabCurrentId) => {
 
 /* === RUNTIME LISTENERS === */
 chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
+  const companyName = indexLookupRequest(message);
+  if (companyName !== null) {
+    indexClient.lookup(companyName).then(
+      (result) => sendResponse(result),
+      () => sendResponse({ match: "unmatched", companyId: null, likelihood: "unknown" }),
+    );
+    return true;
+  }
   if (message.origin === "popup")
     new Popup(current_tab_id, posting, message, sendResponse);
   else if (message.origin === "content")

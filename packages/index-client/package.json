@@ -1,0 +1,13 @@
+{
+  "name": "@visaspotter/index-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/client.js"
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "probe": "node src/probe.js"
+  }
+}
