@@ -53,20 +53,11 @@
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://www.indeed.com/jobs*"],
+      "matches": ["https://www.indeed.com/jobs*", "https://www.indeed.com/cmp/*/jobs*"],
       "js": [
+        "modules/contents/selectors.js",
         "modules/contents/page.js",
-        "modules/contents/indeed/listing.js",
-        "modules/contents/indeed/pages/jobsearch.js",
-        "modules/contents/indeed/indeed.js"
-      ],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": ["https://www.indeed.com/cmp/*/jobs*"],
-      "js": [
-        "modules/contents/page.js",
-        "modules/contents/indeed/pages/companysearch.js",
+        "modules/contents/listing.js",
         "modules/contents/indeed/indeed.js"
       ],
       "run_at": "document_idle"

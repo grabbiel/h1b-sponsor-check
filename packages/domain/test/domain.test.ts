@@ -83,7 +83,7 @@ test("explicit refusal stays explicit-no beside a frequent sponsor", () => {
   });
 });
 
-function signedPack(mutate?: (body: SelectorPackBody) => void): unknown {
+async function signedPack(mutate?: (body: SelectorPackBody) => void): Promise<unknown> {
   const body: SelectorPackBody = {
     schema: 1,
     platform: "linkedin",
@@ -104,11 +104,11 @@ function signedPack(mutate?: (body: SelectorPackBody) => void): unknown {
     ],
   };
   mutate?.(body);
-  return { ...body, contentHash: selectorPackContentHash(body) };
+  return { ...body, contentHash: await selectorPackContentHash(body) };
 }
 
-test("a signed selector pack parses", () => {
-  const parsed = parseSelectorPack(signedPack());
+test("a signed selector pack parses", async () => {
+  const parsed = await parseSelectorPack(await signedPack());
   assert.equal(parsed.ok, true);
   if (!parsed.ok) return;
   assert.equal(parsed.pack.platform, "linkedin");
@@ -116,21 +116,21 @@ test("a signed selector pack parses", () => {
   assert.equal(parsed.pack.pages[0]?.slots.description[0], "#job-details > div");
 });
 
-test("a selector pack with a broken content hash is rejected", () => {
-  const pack = signedPack() as { contentHash: string };
+test("a selector pack with a broken content hash is rejected", async () => {
+  const pack = (await signedPack()) as { contentHash: string };
   pack.contentHash = "0".repeat(64);
-  const parsed = parseSelectorPack(pack);
+  const parsed = await parseSelectorPack(pack);
   assert.deepEqual(parsed, { ok: false, error: "content-hash" });
 });
 
-test("selectors that contain markup or url() are rejected", () => {
-  const markup = parseSelectorPack(
-    signedPack((body) => {
+test("selectors that contain markup or url() are rejected", async () => {
+  const markup = await parseSelectorPack(
+    await signedPack((body) => {
       body.pages[0]!.slots.companyName = ["div < span"];
     }),
   );
-  const url = parseSelectorPack(
-    signedPack((body) => {
+  const url = await parseSelectorPack(
+    await signedPack((body) => {
       body.pages[0]!.slots.description = ["url(https://evil.example/p)"];
     }),
   );

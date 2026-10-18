@@ -61,7 +61,16 @@ async function request_site_injection(sitename){
 /* ====== GENERAL PARSING METHODS ====== */
 async function run_parsing(){
     if(parsing) return;
-    else parsingWorker.set_method();
+    else parsingWorker.set_method(await request_selector_pack());
+}
+async function request_selector_pack(){
+    const platform = {1: "linkedin", 2: "indeed"}[sitename];
+    if(platform === undefined) return null;
+    try{
+        return await chrome.runtime.sendMessage({origin: "content", operation: "selector-pack", platform: platform}) ?? null;
+    }catch{
+        return null;
+    }
 }
 async function set_parsing_worker(injectionStatus){
     if(!injectionStatus) return false

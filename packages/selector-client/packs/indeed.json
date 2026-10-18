@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "platform": "indeed",
+  "version": 1,
+  "minExtensionVersion": "1.8.1",
+  "pages": [
+    {
+      "kind": "search",
+      "detect": [
+        "[class*='jobsearch-JobCountAndSortPane-jobCount']"
+      ],
+      "slots": {
+        "jobTitle": [
+          "[class*='jobsearch-viewjoblayout'] .jobsearch-JobComponent .jobsearch-JobComponent-embeddedHeader .jobsearch-JobInfoHeader-title > span"
+        ],
+        "companyName": [
+          "[class*='jobsearch-viewjoblayout'] .jobsearch-JobComponent .jobsearch-JobComponent-embeddedHeader [data-company-name='true']"
+        ],
+        "description": [
+          "[class*='jobsearch-viewjoblayout'] .jobsearch-JobComponent #jobDescriptionText"
+        ],
+        "listingCompanyName": [
+          ".companyName"
+        ],
+        "activeListing": [
+          ".companyName"
+        ]
+      }
+    },
+    {
+      "kind": "job",
+      "detect": [
+        "#cmp-JobSearchInput-cmp-JobsHeader-what",
+        "[data-testid='cmp-JobSearchInput']",
+        "[action^='/cmp/']",
+        "[for='cmp-JobSearchInput-cmp-JobsHeader-what']",
+        "[data-tn-element='NonIAApplyButton']"
+      ],
+      "slots": {
+        "jobTitle": [
+          "[data-testid='jobDetailTitle'] > span"
+        ],
+        "companyName": [
+          "[itemprop='name']"
+        ],
+        "description": [
+          ".JobDetailDescriptionScrollable"
+        ],
+        "listingCompanyName": [
+          ".companyName"
+        ],
+        "activeListing": [
+          ".companyName"
+        ]
+      }
+    }
+  ],
+  "contentHash": "5db0eff39aa032945b3a080b78c4cbab9c638c20eed004b011be772af54b77fe"
+}

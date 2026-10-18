@@ -2,35 +2,22 @@ class LinkedinWorker extends GeneralParsingWorker{ // extend parent
     constructor(){
         super();
     }
-    set_method(){
+    set_method(pack){
         this.documentbody = document.body;
-        this.#determine_page();
-    }
-    #determine_page(){
-        if(this.documentbody.querySelector(".jobs-search-results__list-item"))    
-            this.#determine_browsing_page();
-        else this.#check_for_job_view();
-    }
-    #determine_browsing_page(){
-        if(this.documentbody.querySelector("[title='Jobs based on your profile']")){
-            this.searchresults = new LinkedinPostingsListing(this.documentbody, 1);
-            this.jobposting = new LinkedinRecommendedPage(this.documentbody);
-        }else{
-            this.searchresults = new LinkedinPostingsListing(this.documentbody, 0);
-            this.jobposting = new LinkedinSearchPage(this.documentbody);
-        }
-        if(Boolean(this.jobposting.cname) === false || this.jobposting.cname === ""){
+        const page = pack === null ? null : find_pack_page(pack, this.documentbody);
+        if(page === null) return;
+        if(page.kind === "search") this.searchresults = new PostingsListing(this.documentbody, page);
+        else this.clear_search_cache();
+        this.jobposting = new SlotPage(this.documentbody, page);
+        this.jobposting.positionholder?.closest("a")?.addEventListener("click", (clickEvent)=>{
+            clickEvent.stopPropagation();
+        });
+        this.jobposting.submit();
+        if(this.jobposting.cname === "" && this.searchresults !== null){
             new Messaging({origin: "content", operation: "submit", data:{
                 name: true,
                 content: this.get_listing_active_company_name()
             }});
         }
     }
-    #check_for_job_view(){
-        if(this.documentbody.querySelector(".jobs-unified-top-card__job-title")){
-            this.clear_search_cache();
-            this.jobposting = new LinkedinViewPage(this.documentbody);
-        }            
-    }
- 
 }

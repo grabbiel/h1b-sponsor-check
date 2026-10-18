@@ -47,17 +47,11 @@ export type Verdict = {
   company: CompanyVerdict;
 };
 
-export const PAGE_KINDS = ["search", "job"] as const;
-export type PageKind = (typeof PAGE_KINDS)[number];
+export { PAGE_KINDS, SLOT_NAMES } from "./selector-pack.js";
 
-export const SLOT_NAMES = [
-  "jobTitle",
-  "companyName",
-  "description",
-  "listingCompanyName",
-  "activeListing",
-] as const;
-export type SlotName = (typeof SLOT_NAMES)[number];
+export type PageKind = "search" | "job";
+
+export type SlotName = "jobTitle" | "companyName" | "description" | "listingCompanyName" | "activeListing";
 
 export type SelectorPage = {
   kind: PageKind;

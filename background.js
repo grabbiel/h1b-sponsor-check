@@ -4,10 +4,21 @@ import { posting, content_scripts } from "./utilities.js";
 import { INDEX_BASE, createIndexClient } from "./packages/index-client/src/client.js";
 import { indexLookupRequest } from "./packages/index-client/src/route.js";
 import { cacheApiIndexStore } from "./packages/index-client/src/store.js";
+import { createSelectorPackClient, selectorPackRequest } from "./packages/selector-client/src/client.js";
 
+const indexStore = cacheApiIndexStore(caches);
 const indexClient = createIndexClient({
   baseUrl: INDEX_BASE,
-  store: cacheApiIndexStore(caches),
+  store: indexStore,
+});
+const selectorPacks = createSelectorPackClient({
+  loadBundled: async (platform) => {
+    const response = await fetch(chrome.runtime.getURL(`packages/selector-client/packs/${platform}.json`));
+    return response.json();
+  },
+  remoteUrl: null,
+  extensionVersion: chrome.runtime.getManifest().version,
+  store: indexStore,
 });
 
 var current_tab_id = null; 
@@ -96,6 +107,11 @@ const validateSiteInjection = (tabCurrentId) => {
 
 /* === RUNTIME LISTENERS === */
 chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
+  const platform = selectorPackRequest(message);
+  if (platform !== null) {
+    selectorPacks.pack(platform).then(sendResponse, () => sendResponse(null));
+    return true;
+  }
   const companyName = indexLookupRequest(message);
   if (companyName !== null) {
     indexClient.lookup(companyName).then(

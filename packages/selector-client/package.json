@@ -1,0 +1,13 @@
+{
+  "name": "@visaspotter/selector-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/client.js"
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "sign": "node src/sign.js packs/linkedin.json packs/indeed.json"
+  }
+}
