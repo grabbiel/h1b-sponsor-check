@@ -15,7 +15,7 @@ function validate_parsing_worker(parsingWorkerState, siteName){
 
 /* ====== PARSING WORKER VALIDATORS ====== */
 function validate_linkedin_worker(){
-    if(document.body.querySelector("[aria-label='LinkedIn']") || document.getElementById("global-nav-typeahead"))
+    if(document.body.querySelector("[aria-label='LinkedIn'], .nav__logo-link") || document.getElementById("global-nav-typeahead"))
         return true;
     return false;
 }

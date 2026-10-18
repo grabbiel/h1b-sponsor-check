@@ -5,18 +5,8 @@ class CompanyBadge{
         this.addListingBadge(companyStatus);
     }
     clearCache(){
-        if(this.container.hasChildNodes()){
-            this.#removeDOMElements(this.container.getElementsByTagName("span"));
-            this.#removeDOMElements(this.container.getElementsByTagName("svg"));
-        }
-    }
-    #removeDOMElements(elements_array){
-        if(elements_array!=undefined && elements_array!=null){
-            if(elements_array.length > 0){
-                Array.from(elements_array).forEach((ele)=>{
-                    this.container.removeChild(ele);
-                });
-            }
+        for(const child of Array.from(this.container.children)){
+            if(child.localName === "span" || child.localName === "svg") child.remove();
         }
     }
     addListingBadge(cstatus){

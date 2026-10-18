@@ -68,8 +68,10 @@ test("the dry run prints the keys and the pointer and does not call AWS", () => 
   );
   assert.equal(result.status, 0, result.stderr);
   const lines = result.stdout.trim().split("\n");
-  assert.match(lines[0] ?? "", /^v1\/selectors\/linkedin\/1-[0-9a-f]{64}\.json$/);
-  assert.match(lines[1] ?? "", /^v1\/selectors\/indeed\/1-[0-9a-f]{64}\.json$/);
+  for (const [line, platform] of [[lines[0], "linkedin"], [lines[1], "indeed"]] as const) {
+    const pack = bundled(platform);
+    assert.equal(line, `v1/selectors/${platform}/${pack.version}-${pack.contentHash}.json`);
+  }
   assert.equal(lines[2], "v1/selectors/current.json");
   assert.deepEqual(readSelectorPointer(JSON.parse(lines[3] ?? "")), JSON.parse(lines[3] ?? ""));
 });

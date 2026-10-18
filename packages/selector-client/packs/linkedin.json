@@ -1,55 +1,67 @@
 {
   "schema": 1,
   "platform": "linkedin",
-  "version": 1,
+  "version": 2,
   "minExtensionVersion": "1.8.1",
   "pages": [
     {
       "kind": "search",
       "detect": [
-        ".jobs-search-results__list-item"
+        ".jobs-search-results__list-item",
+        ".jobs-search__results-list"
       ],
       "slots": {
         "jobTitle": [
-          "#main div > .jobs-search__job-details > .jobs-search__job-details--container > .jobs-details > div:not([class]) > div > div:not([id]) > .jobs-unified-top-card > div > [class^='jobs-unified-top-card__content'] > a > [class*='job']"
+          "#main div > .jobs-search__job-details > .jobs-search__job-details--container > .jobs-details > div:not([class]) > div > div:not([id]) > .jobs-unified-top-card > div > [class^='jobs-unified-top-card__content'] > a > [class*='job']",
+          ".details-pane__content .top-card-layout__title"
         ],
         "companyName": [
-          "#main div > .jobs-search__job-details > .jobs-search__job-details--container > .jobs-details > div:not([class]) > div > div:not([id]) > .jobs-unified-top-card > div .jobs-unified-top-card__company-name"
+          "#main div > .jobs-search__job-details > .jobs-search__job-details--container > .jobs-details > div:not([class]) > div > div:not([id]) > .jobs-unified-top-card > div .jobs-unified-top-card__company-name",
+          ".details-pane__content .topcard__org-name-link"
         ],
         "description": [
-          "#main div > .jobs-search__job-details > .jobs-search__job-details--container > .jobs-details > div:not([class]) > div #job-details > span"
+          "#main div > .jobs-search__job-details > .jobs-search__job-details--container > .jobs-details > div:not([class]) > div #job-details > span",
+          ".details-pane__content .show-more-less-html__markup"
         ],
         "listingCompanyName": [
-          "[class*='-card-container__primary-description']"
+          "[class*='-card-container__primary-description']",
+          ".base-search-card__subtitle"
         ],
         "activeListing": [
-          ".jobs-search-results-list__list-item--active"
+          ".jobs-search-results-list__list-item--active",
+          ".job-search-card--active"
         ]
       }
     },
     {
       "kind": "job",
       "detect": [
-        ".jobs-unified-top-card__job-title"
+        ".jobs-unified-top-card__job-title",
+        ".top-card-layout__title"
       ],
       "slots": {
         "jobTitle": [
-          "[role='main'] div:not([class]) > div > div > .p5 h1"
+          "[role='main'] div:not([class]) > div > div > .p5 h1",
+          ".top-card-layout__title"
         ],
         "companyName": [
-          "[role='main'] div:not([class]) > div > div > .p5 [class*='company-name'] > a"
+          "[role='main'] div:not([class]) > div > div > .p5 [class*='company-name'] > a",
+          ".topcard__org-name-link"
         ],
         "description": [
-          "[role='main'] [class*='jobs-description'] > article > div > [class*='content'] > span"
+          "[role='main'] [class*='jobs-description'] > article > div > [class*='content'] > span",
+          ".show-more-less-html__markup"
         ],
         "listingCompanyName": [
-          "[class*='-card-container__primary-description']"
+          "[class*='-card-container__primary-description']",
+          ".base-search-card__subtitle"
         ],
         "activeListing": [
-          ".jobs-search-results-list__list-item--active"
+          ".jobs-search-results-list__list-item--active",
+          ".job-search-card--active"
         ]
       }
     }
   ],
-  "contentHash": "96af95fb228deeb5b888dffc401b5e75adb11efa1cbf24799a7cd3e9a1b0b685"
+  "contentHash": "08d432fc9437f1283427470ef2e68a80b41f4ffc5c2df6630b3a4f544ee3c27b"
 }

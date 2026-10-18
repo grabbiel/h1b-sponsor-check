@@ -1,29 +1,35 @@
 {
   "schema": 1,
   "platform": "indeed",
-  "version": 1,
+  "version": 2,
   "minExtensionVersion": "1.8.1",
   "pages": [
     {
       "kind": "search",
       "detect": [
-        "[class*='jobsearch-JobCountAndSortPane-jobCount']"
+        "[class*='jobsearch-JobCountAndSortPane-jobCount']",
+        ".jobsearch-LeftPane"
       ],
       "slots": {
         "jobTitle": [
-          "[class*='jobsearch-viewjoblayout'] .jobsearch-JobComponent .jobsearch-JobComponent-embeddedHeader .jobsearch-JobInfoHeader-title > span"
+          "[class*='jobsearch-viewjoblayout'] .jobsearch-JobComponent .jobsearch-JobComponent-embeddedHeader .jobsearch-JobInfoHeader-title > span",
+          "[data-testid='desktop-job-header'] [data-testid='vj-job-title']"
         ],
         "companyName": [
-          "[class*='jobsearch-viewjoblayout'] .jobsearch-JobComponent .jobsearch-JobComponent-embeddedHeader [data-company-name='true']"
+          "[class*='jobsearch-viewjoblayout'] .jobsearch-JobComponent .jobsearch-JobComponent-embeddedHeader [data-company-name='true']",
+          "[data-testid='company-info-metadata'] a[href*='/cmp/']"
         ],
         "description": [
-          "[class*='jobsearch-viewjoblayout'] .jobsearch-JobComponent #jobDescriptionText"
+          "[class*='jobsearch-viewjoblayout'] .jobsearch-JobComponent #jobDescriptionText",
+          ".simple-job-description-html"
         ],
         "listingCompanyName": [
-          ".companyName"
+          ".companyName",
+          "[data-testid='company-name']"
         ],
         "activeListing": [
-          ".companyName"
+          ".companyName",
+          ".vjs-highlight"
         ]
       }
     },
@@ -38,13 +44,15 @@
       ],
       "slots": {
         "jobTitle": [
-          "[data-testid='jobDetailTitle'] > span"
+          "[data-testid='jobDetailTitle'] > span",
+          "[data-testid='jobDetailTitle'] > h3"
         ],
         "companyName": [
           "[itemprop='name']"
         ],
         "description": [
-          ".JobDetailDescriptionScrollable"
+          ".JobDetailDescriptionScrollable",
+          "[data-testid='jobDetailDescription']"
         ],
         "listingCompanyName": [
           ".companyName"
@@ -55,5 +63,5 @@
       }
     }
   ],
-  "contentHash": "5db0eff39aa032945b3a080b78c4cbab9c638c20eed004b011be772af54b77fe"
+  "contentHash": "d66a7b6cff4e5d6dd46abee0041c526627a4079580550b78ce2f422fad89f6e1"
 }
