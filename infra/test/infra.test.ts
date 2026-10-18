@@ -68,6 +68,12 @@ test("visaspotter-dev tags the marker and stays inside the data plane", () => {
       "AWS::CloudFront::OriginAccessControl",
       "AWS::CloudFront::ResponseHeadersPolicy",
       "AWS::DynamoDB::Table",
+      "AWS::Events::Rule",
+      "AWS::IAM::Policy",
+      "AWS::IAM::Role",
+      "AWS::Lambda::Function",
+      "AWS::Lambda::Permission",
+      "AWS::Logs::LogGroup",
       "AWS::S3::Bucket",
       "AWS::S3::Bucket",
       "AWS::S3::BucketPolicy",
@@ -153,6 +159,10 @@ test("data plane buckets stay private and the ops table is on-demand", () => {
         { AttributeName: "pk", AttributeType: "S" },
         { AttributeName: "sk", AttributeType: "S" },
       ],
+      TimeToLiveSpecification: {
+        AttributeName: "ttl",
+        Enabled: true,
+      },
     },
   });
   const tables = template.findResources("AWS::DynamoDB::Table");
@@ -202,7 +212,6 @@ function oneResource(template: Template, type: string): TemplateResource {
 
 test("public index reads use origin access control, CORS, and pointer TTLs", () => {
   const template = stackTemplate();
-  template.resourceCountIs("AWS::Lambda::Function", 0);
   template.resourceCountIs("AWS::CertificateManager::Certificate", 0);
   const distribution = oneResource(template, "AWS::CloudFront::Distribution");
   const config = distribution.Properties.DistributionConfig as {
@@ -408,4 +417,56 @@ test("cdk.json pins the dedicated toolkit stack and qualifier", () => {
     cdk.context["@aws-cdk/core:bootstrapQualifier"],
     IDENTITY.bootstrapQualifier,
   );
+});
+
+test("the dataset rule runs visaspotter-dev-dataset every 14 days with alerts off", () => {
+  const template = stackTemplate();
+  template.resourceCountIs("AWS::Lambda::Function", 1);
+  template.resourceCountIs("AWS::Events::Rule", 1);
+  template.hasResourceProperties("AWS::Lambda::Function", {
+    FunctionName: "visaspotter-dev-dataset",
+    Runtime: "nodejs22.x",
+    Architectures: ["arm64"],
+    MemorySize: 2048,
+    Timeout: 900,
+    Environment: {
+      Variables: {
+        ALERTS_ENABLED: "false",
+        RAW_BUCKET: "visaspotter-dev-raw-028658486564",
+        PUBLIC_BUCKET: "visaspotter-dev-public-028658486564",
+        TABLE_NAME: "visaspotter-dev",
+        HUB_URL: "https://www.uscis.gov/tools/reports-and-studies/h-1b-employer-data-hub",
+      },
+    },
+  });
+  template.hasResourceProperties("AWS::Events::Rule", {
+    Name: "visaspotter-dev-dataset-watch",
+    ScheduleExpression: "rate(14 days)",
+    State: "ENABLED",
+  });
+  template.hasResourceProperties("AWS::Logs::LogGroup", {
+    LogGroupName: "/aws/lambda/visaspotter-dev-dataset",
+    RetentionInDays: 14,
+  });
+  const rules = template.findResources("AWS::Events::Rule");
+  const rule = Object.values(rules)[0] as {
+    Properties: { Targets: Array<{ Input?: string; Arn?: { "Fn::GetAtt"?: string[] } }> };
+  };
+  assert.equal(rule.Properties.Targets.length, 1);
+  const target = rule.Properties.Targets[0];
+  assert.ok(target);
+  assert.equal(target.Input, JSON.stringify({ mode: "watch" }));
+  const functions = template.findResources("AWS::Lambda::Function");
+  const functionId = Object.keys(functions)[0];
+  assert.equal(target.Arn?.["Fn::GetAtt"]?.[0], functionId);
+  const json = JSON.stringify(template.toJSON());
+  assert.equal(json.includes("ses:"), false);
+  const policies = template.findResources("AWS::IAM::Policy");
+  const policyText = JSON.stringify(policies);
+  assert.equal(policyText.includes("s3:PutObject"), true);
+  assert.equal(policyText.includes("s3:GetObject"), true);
+  assert.equal(policyText.includes("dynamodb:PutItem"), true);
+  assert.equal(policyText.includes("index/current.json"), true);
+  assert.equal(policyText.includes("v1/index/*"), true);
+  assert.equal(policyText.includes("raw/uscis/*"), true);
 });

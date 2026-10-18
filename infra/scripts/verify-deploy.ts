@@ -19,6 +19,12 @@ const allowedTypes = new Set([
   "AWS::CloudFront::OriginAccessControl",
   "AWS::CloudFront::CachePolicy",
   "AWS::CloudFront::ResponseHeadersPolicy",
+  "AWS::Lambda::Function",
+  "AWS::Lambda::Permission",
+  "AWS::IAM::Role",
+  "AWS::IAM::Policy",
+  "AWS::Events::Rule",
+  "AWS::Logs::LogGroup",
 ]);
 
 function aws(args: string[]): unknown {

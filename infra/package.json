@@ -10,10 +10,12 @@
     "verify-deploy": "node --experimental-strip-types scripts/verify-deploy.ts"
   },
   "dependencies": {
+    "@visaspotter/dataset-job": "0.0.0",
     "aws-cdk-lib": "^2.214.0",
     "constructs": "^10.4.2"
   },
   "devDependencies": {
-    "aws-cdk": "^2.214.0"
+    "aws-cdk": "^2.214.0",
+    "esbuild": "^0.25.11"
   }
 }
