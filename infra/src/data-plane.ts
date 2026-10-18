@@ -21,4 +21,8 @@ export const DATA_PLANE = {
   ],
   pointerTtlSeconds: 3600,
   immutableTtlSeconds: 31536000,
+  hubUrl: "https://www.uscis.gov/tools/reports-and-studies/h-1b-employer-data-hub",
+  datasetFunctionName: `${IDENTITY.stackName}-dataset`,
+  datasetRuleName: `${IDENTITY.stackName}-dataset-watch`,
+  datasetLogGroupName: `/aws/lambda/${IDENTITY.stackName}-dataset`,
 } as const;

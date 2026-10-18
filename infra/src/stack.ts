@@ -19,6 +19,7 @@ import {
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import type { Construct } from "constructs";
 import { DATA_PLANE } from "./data-plane.ts";
+import { addDatasetJob } from "./dataset-job.ts";
 import { IDENTITY } from "./identity.ts";
 
 function privateBucket(scope: Construct, id: string, bucketName: string): Bucket {
@@ -111,17 +112,17 @@ export class VisaSpotterStack extends Stack {
       parameterName: `/${IDENTITY.stackName}/marker`,
       stringValue: IDENTITY.stackName,
     });
-    publicDistribution(
-      this,
-      privateBucket(this, "PublicIndex", DATA_PLANE.publicBucketName),
-    );
-    privateBucket(this, "RawDatasets", DATA_PLANE.rawBucketName);
-    new Table(this, "Operations", {
+    const publicBucket = privateBucket(this, "PublicIndex", DATA_PLANE.publicBucketName);
+    publicDistribution(this, publicBucket);
+    const rawBucket = privateBucket(this, "RawDatasets", DATA_PLANE.rawBucketName);
+    const operations = new Table(this, "Operations", {
       tableName: DATA_PLANE.tableName,
       partitionKey: { name: DATA_PLANE.partitionKey, type: AttributeType.STRING },
       sortKey: { name: DATA_PLANE.sortKey, type: AttributeType.STRING },
       billingMode: BillingMode.PAY_PER_REQUEST,
+      timeToLiveAttribute: "ttl",
       removalPolicy: RemovalPolicy.RETAIN,
     });
+    addDatasetJob(this, { raw: rawBucket, public: publicBucket, table: operations });
   }
 }
