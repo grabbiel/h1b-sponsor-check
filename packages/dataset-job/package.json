@@ -1,0 +1,17 @@
+{
+  "name": "@visaspotter/dataset-job",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./keys": "./src/keys.ts"
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@visaspotter/domain": "0.0.0",
+    "@visaspotter/index-builder": "0.0.0"
+  }
+}
