@@ -94,15 +94,22 @@ export async function handler(event: unknown): Promise<DatasetResult> {
       });
       return { status: response.status, body: await response.text() };
     },
-    hasSnapshot: async (fingerprint) => {
+    getSnapshot: async (fingerprint) => {
       const got = await documents.send(
         new GetCommand({
           TableName: tableName,
           Key: { pk: HUB_PK, sk: `FP#${fingerprint}` },
-          ProjectionExpression: "pk",
         }),
       );
-      return got.Item !== undefined;
+      const item = got.Item;
+      if (item === undefined) return undefined;
+      const indexVersion = item.indexVersion;
+      const checkedAt = item.checkedAt;
+      const filesJson = item.filesJson;
+      if (typeof indexVersion !== "string" || typeof checkedAt !== "string" || typeof filesJson !== "string") {
+        return undefined;
+      }
+      return { indexVersion, checkedAt, filesJson };
     },
     listRawCsv: async () => {
       const files: RawCsv[] = [];

@@ -7,6 +7,7 @@ export type {
   DatasetPorts,
   DatasetResult,
   DatasetSnapshot,
+  StoredSnapshot,
   OpsItem,
   RawCsv,
   StoredObject,

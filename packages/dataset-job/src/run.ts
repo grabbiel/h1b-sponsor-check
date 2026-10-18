@@ -69,9 +69,15 @@ export type AlertLog = {
 
 export type OpsItem = DatasetCheck | DatasetSnapshot | AlertLog;
 
+export type StoredSnapshot = {
+  indexVersion: string;
+  checkedAt: string;
+  filesJson: string;
+};
+
 export type DatasetPorts = {
   fetchText: (url: string) => Promise<{ status: number; body: string }>;
-  hasSnapshot: (fingerprint: string) => Promise<boolean>;
+  getSnapshot: (fingerprint: string) => Promise<StoredSnapshot | undefined>;
   listRawCsv: () => Promise<RawCsv[]>;
   putObject: (object: StoredObject) => Promise<void>;
   putItem: (item: OpsItem) => Promise<void>;
@@ -151,7 +157,10 @@ async function publish(
     if (Buffer.byteLength(file.body) > MAX_CSV_BYTES) return fail(ports, env, "csv-too-large");
   }
   const fingerprint = fingerprintOf(unique);
-  if (await ports.hasSnapshot(fingerprint)) {
+  const existing = await ports.getSnapshot(fingerprint);
+  const restored = existing === undefined ? undefined : pointerFromSnapshot(existing);
+  if (restored !== undefined) {
+    await putPointers(ports, restored);
     await putCheck(ports, env, { status: "unchanged" });
     return { outcome: "unchanged", fingerprint };
   }
@@ -288,13 +297,7 @@ function buildPublication(files: readonly RawCsv[], at: string, fingerprint: str
     });
   });
   for (const key of POINTER_KEYS) {
-    objects.push({
-      bucket: "public",
-      key,
-      body: pointer,
-      contentType: "application/json",
-      cacheControl: "public, max-age=3600",
-    });
+    objects.push(pointerObject(key, pointer));
   }
   const described = parsedFiles
     .map((file) => ({ fiscalYear: file.fiscalYear, sha256: file.sha256, bytes: file.bytes }))
@@ -391,6 +394,52 @@ function isUscisHttps(url: string): boolean {
   }
   if (parsed.protocol !== "https:") return false;
   return HUB_HOSTS.some((host) => host === parsed.hostname);
+}
+
+function pointerObject(key: string, body: string): StoredObject {
+  return {
+    bucket: "public",
+    key,
+    body,
+    contentType: "application/json",
+    cacheControl: "public, max-age=3600",
+  };
+}
+
+async function putPointers(ports: DatasetPorts, body: string): Promise<void> {
+  for (const key of POINTER_KEYS) await ports.putObject(pointerObject(key, body));
+}
+
+function pointerFromSnapshot(snapshot: StoredSnapshot): string | undefined {
+  const fiscalYears = fiscalYearsFromFilesJson(snapshot.filesJson);
+  if (fiscalYears === undefined || fiscalYears.length === 0) return undefined;
+  if (!snapshot.indexVersion.startsWith("idx-")) return undefined;
+  return JSON.stringify({
+    indexVersion: snapshot.indexVersion,
+    normalizerVersion: NORMALIZER_VERSION,
+    shardCount: SHARD_COUNT,
+    shardKeyPrefix: `${SHARD_KEY_PREFIX}${snapshot.indexVersion}/`,
+    builtAt: snapshot.checkedAt,
+    fiscalYears,
+  });
+}
+
+function fiscalYearsFromFilesJson(filesJson: string): number[] | undefined {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(filesJson);
+  } catch {
+    return undefined;
+  }
+  if (!Array.isArray(parsed)) return undefined;
+  const years: number[] = [];
+  for (const entry of parsed) {
+    if (typeof entry !== "object" || entry === null || !("fiscalYear" in entry)) return undefined;
+    const fiscalYear = entry.fiscalYear;
+    if (typeof fiscalYear !== "number" || !Number.isInteger(fiscalYear)) return undefined;
+    years.push(fiscalYear);
+  }
+  return [...new Set(years)].sort((a, b) => a - b);
 }
 
 function fingerprintOf(files: readonly RawCsv[]): string {

@@ -48,8 +48,15 @@ function harness(options: {
       if (options.fetchError !== undefined) throw new Error(options.fetchError);
       return options.pages?.[url] ?? { status: 404, body: "" };
     },
-    hasSnapshot: async (fingerprint) =>
-      items.some((item) => item.kind === "dataset-snapshot" && item.fingerprint === fingerprint),
+    getSnapshot: async (fingerprint) => {
+      const found = items.find((item) => item.kind === "dataset-snapshot" && item.fingerprint === fingerprint);
+      if (found === undefined || found.kind !== "dataset-snapshot") return undefined;
+      return {
+        indexVersion: found.indexVersion,
+        checkedAt: found.checkedAt,
+        filesJson: found.filesJson,
+      };
+    },
     listRawCsv: async () => options.raw ?? [],
     putObject: async (object) => {
       objects.push(object);
@@ -153,7 +160,7 @@ test("the five newest fiscal years are the only csv downloads", async () => {
   assert.deepEqual(box.fetches, [HUB, yearUrl(2026), yearUrl(2025), yearUrl(2024), yearUrl(2023), yearUrl(2022)]);
 });
 
-test("a second watch of the same files does not publish again", async () => {
+test("a second watch restores the pointers and does not rebuild shards", async () => {
   const box = harness({
     pages: {
       [HUB]: { status: 200, body: `<a href="${CSV_URL}">2024</a>` },
@@ -162,11 +169,18 @@ test("a second watch of the same files does not publish again", async () => {
   });
   const first = await runDataset({ mode: "watch" }, box.ports, box.env);
   const published = box.objects.length;
+  const firstPointer = box.objects.find((object) => object.key === POINTER_KEYS[0])?.body;
   const second = await runDataset({ mode: "watch" }, box.ports, box.env);
   assert.equal(first.outcome, "changed");
   assert.equal(second.outcome, "unchanged");
   assert.equal(second.fingerprint, first.fingerprint);
-  assert.equal(box.objects.length, published);
+  const restored = box.objects.slice(published);
+  assert.deepEqual(
+    restored.map((object) => object.key),
+    [...POINTER_KEYS],
+  );
+  assert.equal(restored[0]?.body, firstPointer);
+  assert.equal(restored[1]?.body, firstPointer);
   assert.equal(checks(box.items).at(-1)?.status, "unchanged");
   assert.equal(alerts(box.items).filter((alert) => alert.pk === "ALERT#dataset-changed").length, 1);
 });
