@@ -1,29 +1,38 @@
 {
   "schema": 1,
   "platform": "linkedin",
-  "version": 2,
+  "version": 3,
   "minExtensionVersion": "1.8.1",
   "pages": [
     {
       "kind": "search",
       "detect": [
+        ".scaffold-layout__list",
         ".jobs-search-results__list-item",
         ".jobs-search__results-list"
       ],
       "slots": {
         "jobTitle": [
-          "#main div > .jobs-search__job-details > .jobs-search__job-details--container > .jobs-details > div:not([class]) > div > div:not([id]) > .jobs-unified-top-card > div > [class^='jobs-unified-top-card__content'] > a > [class*='job']",
-          ".details-pane__content .top-card-layout__title"
+          ".job-details-jobs-unified-top-card__job-title",
+          ".job-details-jobs-unified-top-card__job-title a",
+          ".details-pane__content .top-card-layout__title",
+          "#main div > .jobs-search__job-details > .jobs-search__job-details--container > .jobs-details > div:not([class]) > div > div:not([id]) > .jobs-unified-top-card > div > [class^='jobs-unified-top-card__content'] > a > [class*='job']"
         ],
         "companyName": [
-          "#main div > .jobs-search__job-details > .jobs-search__job-details--container > .jobs-details > div:not([class]) > div > div:not([id]) > .jobs-unified-top-card > div .jobs-unified-top-card__company-name",
-          ".details-pane__content .topcard__org-name-link"
+          ".job-details-jobs-unified-top-card__company-name a",
+          ".job-details-jobs-unified-top-card__company-name",
+          ".details-pane__content .topcard__org-name-link",
+          "#main div > .jobs-search__job-details > .jobs-search__job-details--container > .jobs-details > div:not([class]) > div > div:not([id]) > .jobs-unified-top-card > div .jobs-unified-top-card__company-name"
         ],
         "description": [
-          "#main div > .jobs-search__job-details > .jobs-search__job-details--container > .jobs-details > div:not([class]) > div #job-details > span",
-          ".details-pane__content .show-more-less-html__markup"
+          "#job-details",
+          ".jobs-box__html-content",
+          ".jobs-description__content",
+          ".details-pane__content .show-more-less-html__markup",
+          "#main div > .jobs-search__job-details > .jobs-search__job-details--container > .jobs-details > div:not([class]) > div #job-details > span"
         ],
         "listingCompanyName": [
+          ".artdeco-entity-lockup__subtitle",
           "[class*='-card-container__primary-description']",
           ".base-search-card__subtitle"
         ],
@@ -36,23 +45,33 @@
     {
       "kind": "job",
       "detect": [
+        ".job-details-jobs-unified-top-card__job-title",
         ".jobs-unified-top-card__job-title",
-        ".top-card-layout__title"
+        ".top-card-layout__title",
+        "main a[href*='/company/'][href*='/life']"
       ],
       "slots": {
         "jobTitle": [
-          "[role='main'] div:not([class]) > div > div > .p5 h1",
-          ".top-card-layout__title"
+          ".job-details-jobs-unified-top-card__job-title",
+          ".job-details-jobs-unified-top-card__job-title a",
+          ".top-card-layout__title",
+          "[role='main'] div:not([class]) > div > div > .p5 h1"
         ],
         "companyName": [
-          "[role='main'] div:not([class]) > div > div > .p5 [class*='company-name'] > a",
-          ".topcard__org-name-link"
+          ".job-details-jobs-unified-top-card__company-name a",
+          "main a[href*='/company/'][href*='/life']",
+          ".topcard__org-name-link",
+          "[role='main'] div:not([class]) > div > div > .p5 [class*='company-name'] > a"
         ],
         "description": [
-          "[role='main'] [class*='jobs-description'] > article > div > [class*='content'] > span",
-          ".show-more-less-html__markup"
+          "#job-details",
+          ".jobs-box__html-content",
+          "main [data-test='expandable-text-box']",
+          ".show-more-less-html__markup",
+          "[role='main'] [class*='jobs-description'] > article > div > [class*='content'] > span"
         ],
         "listingCompanyName": [
+          ".artdeco-entity-lockup__subtitle",
           "[class*='-card-container__primary-description']",
           ".base-search-card__subtitle"
         ],
@@ -63,5 +82,5 @@
       }
     }
   ],
-  "contentHash": "08d432fc9437f1283427470ef2e68a80b41f4ffc5c2df6630b3a4f544ee3c27b"
+  "contentHash": "a55ecf0aca52e22b1e3dad2c481090e205a1011724dd676e0b946d1842928a41"
 }
