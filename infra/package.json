@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@visaspotter/dataset-job": "0.0.0",
+    "@visaspotter/layout-job": "0.0.0",
     "aws-cdk-lib": "^2.214.0",
     "constructs": "^10.4.2"
   },
