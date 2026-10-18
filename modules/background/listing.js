@@ -1,10 +1,12 @@
-import MatchRequest from "./requests/match.js"; // maybe optional? test later
-import Message from "./messaging/mainmessage.js"; // maybe optional? test later
+import Message from "./messaging/mainmessage.js";
+import { companyBadgeForName } from "./listing-cutover.js";
+
 export default class JobsListing{
-    constructor(postings_array, tabId){
+    constructor(postings_array, tabId, lookup){
         this.posts = postings_array;
         this.activeTabId = tabId;
-        this.#iterateRequest(); // delete cache after every call
+        this.lookup = lookup;
+        this.#iterateRequest();
     }
     #iterateRequest = async()=>{
         this.posts.forEach((post)=>{
@@ -12,12 +14,10 @@ export default class JobsListing{
         });
     }
     #queryCompanyName = async(post)=>{
-        let instance = new MatchRequest(post.name); 
-        instance.has_match().then((response)=>{
-            new Message(this.activeTabId, "background", "edit", {
-                posts: true,
-                content: {cstatus: response, index: post.index}
-            });
-        })
+        const badge = await companyBadgeForName(post.name, this.lookup);
+        new Message(this.activeTabId, "background", "edit", {
+            posts: true,
+            content: {cstatus: badge, index: post.index}
+        });
     }
 }

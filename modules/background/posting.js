@@ -1,3 +1,5 @@
+import { postingBadgeFromDescription } from "./listing-cutover.js";
+
 export default class PostingInformation{
     constructor(){
         this.platform = null;
@@ -5,16 +7,17 @@ export default class PostingInformation{
         this.jobDescription = null;
         this.companyName = null;
         this.h1bData = null;
-        this.postIsFriendly = true;
+        this.postIsFriendly = 1;
+        this.languageBadge = { mark: "sponsor", label: "Sponsor" };
+        this.companyBadge = null;
     }
     setCompanyName(cname){
         this.companyName = cname;
     }
     setDescription(jobDescription){
-
-        this.jobDescription = jobDescription.toLowerCase();
-        this.#classifyDescription();
-
+        this.jobDescription = jobDescription;
+        this.languageBadge = postingBadgeFromDescription(jobDescription);
+        this.postIsFriendly = this.languageBadge.mark === "sponsor" ? 1 : 0;
     }
     setPlatform(platform){
         this.platform = platform;
@@ -22,13 +25,8 @@ export default class PostingInformation{
     setCountry(country){
         this.country = country;
     }
-    #classifyDescription(){
-        if(this.jobDescription.includes('H-1B') || this.jobDescription.includes('U.S.-person') || this.jobDescription.includes("sponsorship") || this.jobDescription.includes("U.S. citizen") || this.jobDescription.includes(" OPT ") || this.jobDescription.includes("eligible to work") || this.jobDescription.includes("work authorization") || this.jobDescription.includes("Unrestricted U.S.")){
-            this.postIsFriendly = 0; return;
-        }else{
-            this.postIsFriendly = 1;
-            return;
-        }
+    setCompanyBadge(badge){
+        this.companyBadge = badge;
     }
     setH1bData = async(data) =>{
         this.h1bData = data;

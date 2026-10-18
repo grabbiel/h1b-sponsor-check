@@ -23,7 +23,8 @@
   "host_permissions": [
     "https://www.linkedin.com/jobs/*",
     "https://www.indeed.com/jobs*",
-    "https://www.indeed.com/cmp/*/jobs*"
+    "https://www.indeed.com/cmp/*/jobs*",
+    "https://d24ktdd0rusd1i.cloudfront.net/*"
   ],
   "background": {
     "service_worker": "background.js",

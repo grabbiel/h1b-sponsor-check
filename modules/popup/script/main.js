@@ -1,5 +1,6 @@
 class PopUpManager{
-    constructor(companyname, jobstatus, h1bdata){
+    constructor(companyname, jobstatus, h1bdata, summary){
+        this.summary = summary;
         this.visarequestcontainer = null;
         this.h1bdata = h1bdata;
         this.cname = companyname;
@@ -199,7 +200,9 @@ class PopUpManager{
     }
 
     set_summary_text = async(cname, cstatus, h1bdata) =>{
-        if(h1bdata!=null && cstatus){
+        if(this.summary != null){
+            this.paragraph = this.summary;
+        }else if(h1bdata!=null && cstatus){
             this.paragraph  = `This job opening is willing to sponsor international applicants. In the past year, <span style='color: yellow;'>${cname}</span> has requested <span id='popup-visa-requests' style='font-weight: bold;'><a title='What is this?' style='text-decoration:none;'>${h1bdata.company_requests} H1B visas</a></span>, thus positioning itself in the ${this.#company_ranking(h1bdata.company_ranking)} of sponsoring employers.`;
         }else if(h1bdata==null && cstatus === false){
             this.paragraph  = `Yeah... you probably should not even consider this position. \nNot only does it disencourage non-citizens' applications but also, according to our records, <span style='color: yellow;'>${cname}</span> has not filed a single H1B request in recent years.\nKeep looking! We know you got this!`;

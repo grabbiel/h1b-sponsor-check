@@ -2,16 +2,17 @@ import Message from "./mainmessage.js";
 import MatchRequest from "../requests/match.js";
 import MatchReviewRequest from "../requests/review.js";
 import JobsListing from "../listing.js";
+import { companyBadgeForName, companyBadgeFromPhp, matchPath } from "../listing-cutover.js";
 import {
   linkedin_content_scripts,
   indeed_content_scripts,
-  platform_codes_by_worker
 } from "../../../utilities.js";
 
 
 export default class Content {
-  constructor(tabId, postingelement, message, sendResponse) {
+  constructor(tabId, postingelement, message, sendResponse, lookup) {
     this.current_tab_id = tabId;
+    this.lookup = lookup;
 
     if (message.operation === "submit") {
       // Handle submit operation
@@ -43,21 +44,33 @@ export default class Content {
       });
     } else if (message.data.posts === true) {
       // If posts is true, create a new JobsListing instance with the content
-      new JobsListing(message.data.content, this.current_tab_id);
+      new JobsListing(message.data.content, this.current_tab_id, this.lookup);
     } else if(message.data.parsingworkerClass === true){
         postingelement.setPlatform(message.data.content.platform_code);
         postingelement.setCountry(0); // MODIFY LATER
     }
   }
 
-  submit_company_matching_request(postingelement) {
-    // Submit a company matching request
+  submit_company_matching_request = async (postingelement) => {
+    if (matchPath(postingelement.platform) === "php") {
+      return this.submit_php_matching_request(postingelement);
+    }
+    const badge = await companyBadgeForName(postingelement.companyName, this.lookup);
+    postingelement.setCompanyBadge(badge);
+    postingelement.setH1bData(null);
+    new Message(this.current_tab_id, "background", "edit", {
+      cstatus: true,
+      content: badge,
+    });
+  };
 
+  submit_php_matching_request(postingelement) {
     let instance = new MatchRequest(postingelement.companyName);
-    instance.get_match().then((response) => {
+    return instance.get_match().then((response) => {
+      postingelement.setCompanyBadge(null);
       new Message(this.current_tab_id, "background", "edit", {
         cstatus: true,
-        content: response,
+        content: companyBadgeFromPhp(response),
       });
 
       if (response == 1) {

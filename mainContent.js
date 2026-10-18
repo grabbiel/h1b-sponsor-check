@@ -134,6 +134,6 @@ function edit_dom_content(messageContent){
 }
 function create_dom_content(messageContent){
     if(!messageContent.popup) return;
-    new PopUpManager(messageContent.content.cname, messageContent.content.cdescription, messageContent.content.h1bdata);
+    new PopUpManager(messageContent.content.cname, messageContent.content.cdescription, messageContent.content.h1bdata, messageContent.content.summary);
 }
 

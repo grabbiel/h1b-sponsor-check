@@ -107,5 +107,5 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
   if (message.origin === "popup")
     new Popup(current_tab_id, posting, message, sendResponse);
   else if (message.origin === "content")
-    new Content(current_tab_id, posting, message, sendResponse);
+    new Content(current_tab_id, posting, message, sendResponse, (name) => indexClient.lookup(name));
 });
