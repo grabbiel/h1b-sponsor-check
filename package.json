@@ -8,6 +8,8 @@
   "scripts": {
     "test": "npm test --workspaces --if-present && node --test modules/background/listing-cutover.test.js modules/contents/contents.test.js",
     "build-index": "node --experimental-strip-types packages/index-builder/src/cli.ts",
-    "publish-index": "node --experimental-strip-types packages/index-builder/src/cli.ts --bucket visaspotter-dev-public-028658486564 --distribution EJ6ROBSDC5JA6"
+    "publish-index": "node --experimental-strip-types packages/index-builder/src/cli.ts --bucket visaspotter-dev-public-028658486564 --distribution EJ6ROBSDC5JA6",
+    "publish-selectors": "node --experimental-strip-types packages/selector-publish/src/cli.ts --bucket visaspotter-dev-public-028658486564 --distribution EJ6ROBSDC5JA6",
+    "verify-selectors": "node --experimental-strip-types packages/selector-publish/src/verify.ts --base-url https://d24ktdd0rusd1i.cloudfront.net"
   }
 }
