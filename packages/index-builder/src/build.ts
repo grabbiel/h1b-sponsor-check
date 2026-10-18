@@ -5,13 +5,16 @@ import {
   computeLikelihood,
   normalizeCompanyName,
   NORMALIZER_VERSION,
+  SHARD_COUNT,
+  shardIndex,
   type Company,
   type KnownLikelihood,
   type SponsorRecord,
 } from "@visaspotter/domain";
 import { parseHubCsv, type HubRow } from "./csv.ts";
 
-export const SHARD_COUNT = 256;
+export { fnv1a32, SHARD_COUNT, shardIndex } from "@visaspotter/domain";
+
 export const FISCAL_YEARS_KEPT = 5;
 
 export const RANK_BANDS = ["top", "mid", "none"] as const;
@@ -44,21 +47,6 @@ export type SizeReport = {
   gzipP99: number;
   gzipMax: number;
 };
-
-export function fnv1a32(text: string): number {
-  const bytes = Buffer.from(text, "utf8");
-  let hash = 0x811c9dc5;
-  for (const byte of bytes) {
-    hash ^= byte;
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return hash >>> 0;
-}
-
-export function shardIndex(key: string): number {
-  const token = key.split(" ")[0] ?? "";
-  return fnv1a32(token) % SHARD_COUNT;
-}
 
 export function percentileNearestRank(sortedAsc: readonly number[], percentile: number): number {
   if (sortedAsc.length === 0) return 0;
