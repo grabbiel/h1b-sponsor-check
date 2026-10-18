@@ -1,4 +1,5 @@
 export { normalizeCompanyName, NORMALIZER_VERSION } from "./normalize.ts";
+export { fnv1a32, shardIndex, SHARD_COUNT } from "./shard.js";
 export { normalizeDescription, scanLanguage } from "./language.ts";
 export { computeLikelihood } from "./likelihood.ts";
 export { companyVerdict, verdict } from "./verdict.ts";

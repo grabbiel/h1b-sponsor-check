@@ -2,7 +2,7 @@ declare const companyKeyBrand: unique symbol;
 
 export type CompanyKey = string & { readonly [companyKeyBrand]: "CompanyKey" };
 
-export const NORMALIZER_VERSION = 1;
+export { NORMALIZER_VERSION } from "./normalize.js";
 
 export type KnownLikelihood = "frequent" | "occasional" | "rare" | "none";
 
