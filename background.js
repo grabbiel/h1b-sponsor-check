@@ -16,7 +16,7 @@ const selectorPacks = createSelectorPackClient({
     const response = await fetch(chrome.runtime.getURL(`packages/selector-client/packs/${platform}.json`));
     return response.json();
   },
-  remoteUrl: null,
+  pointerUrl: `${INDEX_BASE}/v1/selectors/current.json`,
   extensionVersion: chrome.runtime.getManifest().version,
   store: indexStore,
 });
