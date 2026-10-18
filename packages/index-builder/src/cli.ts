@@ -1,7 +1,7 @@
-import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { checkBucketName, checkDistributionId, invalidate, putObjects, runAws } from "./aws.ts";
 import { buildShards, companiesFromHubRows, formatReport, sizeReport, writeShards } from "./build.ts";
 import { parseHubCsv } from "./csv.ts";
 import {
@@ -65,7 +65,7 @@ try {
     checkBucketName(bucket);
     checkDistributionId(distribution);
     uploadPlan(bucket, plan, pointer.shardKeyPrefix);
-    invalidatePointers(distribution, plan);
+    invalidate(distribution, plan.pointers);
   }
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
@@ -76,17 +76,15 @@ try {
 function uploadPlan(bucket: string, plan: PublishPlan, shardKeyPrefix: string): void {
   const dir = mkdtempSync(join(tmpdir(), "visaspotter-publish-"));
   try {
-    const shardDir = join(dir, "shards");
-    mkdirSync(shardDir);
     for (const object of plan.shards) {
       const name = object.key.split("/").at(-1);
       if (name === undefined || name.length === 0) throw new Error(`shard key ${object.key} has no file name`);
-      writeFileSync(join(shardDir, name), object.body);
+      writeFileSync(join(dir, name), object.body);
     }
     runAws([
       "s3",
       "sync",
-      shardDir,
+      dir,
       `s3://${bucket}/${shardKeyPrefix}`,
       "--content-type",
       "application/json",
@@ -94,63 +92,11 @@ function uploadPlan(bucket: string, plan: PublishPlan, shardKeyPrefix: string): 
       SHARD_CACHE_CONTROL,
       "--only-show-errors",
     ]);
-    const pointerFile = join(dir, "current.json");
-    for (const object of plan.pointers) {
-      writeFileSync(pointerFile, object.body);
-      runAws([
-        "s3api",
-        "put-object",
-        "--bucket",
-        bucket,
-        "--key",
-        object.key,
-        "--body",
-        pointerFile,
-        "--content-type",
-        "application/json",
-        "--cache-control",
-        object.cacheControl,
-      ]);
-      process.stdout.write(`pointer s3://${bucket}/${object.key}\n`);
-    }
     process.stdout.write(`uploaded s3://${bucket}/${shardKeyPrefix}\n`);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
-}
-
-function invalidatePointers(distributionId: string, plan: PublishPlan): void {
-  runAws([
-    "cloudfront",
-    "create-invalidation",
-    "--distribution-id",
-    distributionId,
-    "--paths",
-    ...plan.pointers.map((object) => `/${object.key}`),
-  ]);
-}
-
-function runAws(args: string[]): void {
-  const result = spawnSync("aws", ["--no-cli-pager", ...args], {
-    encoding: "utf8",
-    env: { ...process.env, AWS_PAGER: "" },
-  });
-  if (result.error) throw result.error;
-  if (result.status !== 0) {
-    const detail = `${result.stderr}${result.stdout}`.trim();
-    throw new Error(detail || `aws exited ${result.status}`);
-  }
-  if (result.stdout.length > 0) {
-    process.stdout.write(result.stdout.endsWith("\n") ? result.stdout : `${result.stdout}\n`);
-  }
-}
-
-function checkBucketName(name: string): void {
-  if (!/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(name)) throw new Error(`bucket ${name} is not a bucket name`);
-}
-
-function checkDistributionId(id: string): void {
-  if (!/^E[A-Z0-9]+$/.test(id)) throw new Error(`distribution ${id} is not a distribution id`);
+  putObjects(bucket, plan.pointers);
 }
 
 function argument(flag: string): string | undefined {
