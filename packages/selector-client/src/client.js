@@ -2,6 +2,7 @@ import { parseSelectorPack } from "../../domain/src/selector-pack.js";
 
 const PLATFORMS = ["linkedin", "indeed"];
 const REFRESH_MS = 24 * 60 * 60 * 1000;
+const CACHE_KEY = "selector-packs";
 
 export function selectorPackRequest(message) {
   if (typeof message !== "object" || message === null) return null;
@@ -13,33 +14,23 @@ export function selectorPackRequest(message) {
 
 export function createSelectorPackClient({
   loadBundled,
-  remoteUrl = null,
+  pointerUrl = null,
   extensionVersion,
   store,
   fetch: fetchImpl = globalThis.fetch,
   now = () => Date.now(),
 }) {
-  const flights = new Map();
+  let flight = null;
 
   return {
-    pack(platform) {
-      if (!PLATFORMS.includes(platform)) return Promise.resolve(null);
-      const existing = flights.get(platform);
-      if (existing !== undefined) return existing;
-      const flight = currentPack(platform).finally(() => {
-        flights.delete(platform);
-      });
-      flights.set(platform, flight);
-      return flight;
+    async pack(platform) {
+      if (!PLATFORMS.includes(platform)) return null;
+      const [bundled, remote] = await Promise.all([bundledPack(platform), remotePacks()]);
+      const candidate = remote[platform] ?? null;
+      if (candidate !== null && (bundled === null || candidate.version > bundled.version)) return candidate;
+      return bundled;
     },
   };
-
-  async function currentPack(platform) {
-    const bundled = await bundledPack(platform);
-    const remote = await remotePack(platform);
-    if (remote !== null && (bundled === null || remote.version > bundled.version)) return remote;
-    return bundled;
-  }
 
   async function bundledPack(platform) {
     try {
@@ -49,21 +40,46 @@ export function createSelectorPackClient({
     }
   }
 
-  async function remotePack(platform) {
-    if (remoteUrl === null) return null;
-    const checkedAt = now();
-    const cached = await readCached(platform);
-    if (cached !== null && checkedAt - cached.checkedAt < REFRESH_MS) return cached.pack;
-    const pack = (await fetchPack(remoteUrl(platform), platform)) ?? cached?.pack ?? null;
-    await writeCached(platform, pack, checkedAt);
-    return pack;
+  function remotePacks() {
+    if (pointerUrl === null) return Promise.resolve({});
+    flight ??= refresh().finally(() => {
+      flight = null;
+    });
+    return flight;
   }
 
-  async function fetchPack(url, platform) {
+  async function refresh() {
+    const checkedAt = now();
+    const cached = await readCached();
+    if (cached !== null && checkedAt - cached.checkedAt < REFRESH_MS) return cached.packs;
+    const pointer = await fetchJson(pointerUrl);
+    const keys = pointer?.schema === 1 ? pointer.packs : undefined;
+    const entries = await Promise.all(
+      PLATFORMS.map(async (platform) => [
+        platform,
+        (await fetchPack(keys?.[platform], platform)) ?? cached?.packs[platform] ?? null,
+      ]),
+    );
+    const packs = Object.fromEntries(entries);
+    await writeCached(packs, checkedAt);
+    return packs;
+  }
+
+  async function fetchPack(key, platform) {
+    if (typeof key !== "string" || !key.startsWith(`v1/selectors/${platform}/`)) return null;
+    try {
+      const body = await fetchJson(new URL(`/${key}`, pointerUrl).href);
+      return body === null ? null : await accepted(body, platform);
+    } catch {
+      return null;
+    }
+  }
+
+  async function fetchJson(url) {
     try {
       const response = await fetchImpl(url);
       if (response.ok !== true) return null;
-      return await accepted(await response.json(), platform);
+      return await response.json();
     } catch {
       return null;
     }
@@ -76,30 +92,31 @@ export function createSelectorPackClient({
     return parsed.pack;
   }
 
-  async function readCached(platform) {
+  async function readCached() {
     try {
-      const text = await store.get(cacheKey(platform));
+      const text = await store.get(CACHE_KEY);
       if (text === null) return null;
       const value = JSON.parse(text);
       if (!Number.isInteger(value?.checkedAt)) return null;
-      const pack = value.pack === null ? null : await accepted(value.pack, platform);
-      return { pack, checkedAt: value.checkedAt };
+      const entries = await Promise.all(
+        PLATFORMS.map(async (platform) => {
+          const pack = value.packs?.[platform] ?? null;
+          return [platform, pack === null ? null : await accepted(pack, platform)];
+        }),
+      );
+      return { packs: Object.fromEntries(entries), checkedAt: value.checkedAt };
     } catch {
       return null;
     }
   }
 
-  async function writeCached(platform, pack, checkedAt) {
+  async function writeCached(packs, checkedAt) {
     try {
-      await store.set(cacheKey(platform), JSON.stringify({ pack, checkedAt }));
+      await store.set(CACHE_KEY, JSON.stringify({ packs, checkedAt }));
     } catch {
       return;
     }
   }
-}
-
-function cacheKey(platform) {
-  return `selector-pack/${platform}`;
 }
 
 function versionAtLeast(actual, minimum) {
