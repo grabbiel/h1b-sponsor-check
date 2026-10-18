@@ -14,6 +14,8 @@ function bundledJson(platform: string): Record<string, unknown> {
   return JSON.parse(readFileSync(new URL(`../packs/${platform}.json`, import.meta.url), "utf8"));
 }
 
+const NEWER = 1 + Math.max(...["linkedin", "indeed"].map((platform) => bundledJson(platform).version as number));
+
 async function signed(platform: string, mutate: (body: SelectorPackBody) => void): Promise<Record<string, unknown>> {
   const { contentHash: _previous, ...body } = bundledJson(platform) as SelectorPack;
   mutate(body);
@@ -64,7 +66,7 @@ function published(...packs: Array<Record<string, unknown>>): Record<string, Rep
   };
 }
 
-function newer(platform: string, version = 2) {
+function newer(platform: string, version = NEWER) {
   return signed(platform, (body) => {
     body.version = version;
   });
@@ -105,21 +107,21 @@ test("an unknown board gets no pack", async () => {
 
 test("the pointer leads to each board's newer pack, and both are fetched at most once a day", async () => {
   const linkedin = await signed("linkedin", (body) => {
-    body.version = 2;
+    body.version = NEWER;
     body.pages[0]!.slots.companyName = [".remote-company"];
   });
-  const indeed = await newer("indeed", 4);
+  const indeed = await newer("indeed", NEWER + 2);
   const world = worldFor(published(linkedin, indeed));
 
   const first = await world.client().pack("linkedin");
-  assert.equal(first?.version, 2);
+  assert.equal(first?.version, NEWER);
   assert.deepEqual(first?.pages[0]?.slots.companyName, [".remote-company"]);
-  assert.equal((await world.client().pack("indeed"))?.version, 4);
+  assert.equal((await world.client().pack("indeed"))?.version, NEWER + 2);
   assert.deepEqual(world.fetched.sort(), [POINTER_URL, `${REMOTE}/${keyFor(indeed)}`, `${REMOTE}/${keyFor(linkedin)}`].sort());
 
   world.advance(DAY - 1);
   const restarted = await world.client().pack("linkedin");
-  assert.equal(restarted?.version, 2, "a fresh service worker reuses the stored pack");
+  assert.equal(restarted?.version, NEWER, "a fresh service worker reuses the stored pack");
   assert.equal(world.fetched.length, 3);
 
   world.advance(1);
@@ -131,16 +133,16 @@ test("concurrent requests for both boards share one pointer fetch", async () => 
   const world = worldFor(published(await newer("linkedin"), await newer("indeed")));
   const client = world.client();
   const [a, b, c] = await Promise.all([client.pack("linkedin"), client.pack("indeed"), client.pack("linkedin")]);
-  assert.equal(a?.version, 2);
-  assert.equal(b?.version, 2);
-  assert.equal(c?.version, 2);
+  assert.equal(a?.version, NEWER);
+  assert.equal(b?.version, NEWER);
+  assert.equal(c?.version, NEWER);
   assert.equal(world.fetched.filter((url) => url === POINTER_URL).length, 1);
   assert.equal(world.fetched.length, 3);
 });
 
 test("a pointer that omits a board keeps that board on its bundle", async () => {
   const world = worldFor(published(await newer("linkedin")));
-  assert.equal((await world.client().pack("linkedin"))?.version, 2);
+  assert.equal((await world.client().pack("linkedin"))?.version, NEWER);
   assert.equal((await world.client().pack("indeed"))?.contentHash, bundledJson("indeed").contentHash);
 });
 
@@ -193,7 +195,7 @@ const badPacks: Array<[string, () => Promise<Record<string, Reply>>]> = [
     linkedinPackReply(async () =>
       reply(
         await signed("linkedin", (body) => {
-          body.version = 2;
+          body.version = NEWER;
           body.pages[0]!.slots.description = ["url(https://evil.example/p)"];
         }),
       ),
@@ -205,7 +207,7 @@ const badPacks: Array<[string, () => Promise<Record<string, Reply>>]> = [
     linkedinPackReply(async () =>
       reply(
         await signed("linkedin", (body) => {
-          body.version = 2;
+          body.version = NEWER;
           body.minExtensionVersion = "1.9.0";
         }),
       ),
@@ -243,12 +245,12 @@ test("a pointer naming another board's key never fetches that key for this board
 });
 
 test("a failed refresh keeps the last good remote pack", async () => {
-  const replies = published(await newer("linkedin", 3));
+  const replies = published(await newer("linkedin", NEWER + 1));
   const world = worldFor(replies);
-  assert.equal((await world.client().pack("linkedin"))?.version, 3);
+  assert.equal((await world.client().pack("linkedin"))?.version, NEWER + 1);
 
   replies[POINTER_URL] = reply("gone", 500);
   world.advance(DAY);
-  assert.equal((await world.client().pack("linkedin"))?.version, 3);
+  assert.equal((await world.client().pack("linkedin"))?.version, NEWER + 1);
   assert.equal(world.fetched.filter((url) => url === POINTER_URL).length, 2);
 });
